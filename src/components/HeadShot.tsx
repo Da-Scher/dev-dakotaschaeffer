@@ -1,11 +1,17 @@
 import React from "react";
 import "./headerStyle.css";
 
-function HeadShot(): React.JSX.Element {
+type HeadShotProps = {
+    className?: string;
+};
+
+function HeadShot({className = ""}: HeadShotProps): React.JSX.Element {
     return (
-        <>
-            <img src={"./../public/EXAMPLE_pp.png"} className={"w-64 h-64 rounded-4xl"}/>
-        </>
+        <img
+            src={"./../public/EXAMPLE_pp.png"}
+            alt={"Firstname Lastname"}
+            className={className}
+        />
     )
 }
 
