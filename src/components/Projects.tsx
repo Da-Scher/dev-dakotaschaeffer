@@ -3,7 +3,7 @@ import Project from "./Project";
 
 function Projects (): React.JSX.Element {
     return (
-        <div className={"grid grid-rows-5 mt-1 gap-y-1"}>
+        <div className={"grid grid-rows-5 gap-1 mt-1"}>
             <Project Descr={"Example 1 Description"} Name={"Example 1 Project"} When={new Date("2020-01-01")} Bullets={["Bullet One", "Bullet Two", "Bullet Three"]} />
             <Project Descr={"Example 2 Description"} Name={"Example 2 Project"} When={new Date("2020-02-01")} Bullets={["Bullet One", "Bullet Two", "Bullet Three"]} />
             <Project Descr={"Example 3 Description"} Name={"Example 3 Project"} When={new Date("2020-03-01")} Bullets={["Bullet One", "Bullet Two", "Bullet Three"]} />
