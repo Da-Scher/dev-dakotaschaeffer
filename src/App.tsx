@@ -4,6 +4,7 @@ import React from 'react'
 //import heroImg from './assets/hero.png'
 import './App.css'
 import Header from './components/Header';
+import Main from './components/Main';
 
 function App(): React.JSX.Element {
   //const [count, setCount] = useState(0)
@@ -11,7 +12,7 @@ function App(): React.JSX.Element {
   return (
     <>
       <Header />
-      <main>Main</main>
+      <Main />
       <footer>Footer</footer>
     </>
   )
