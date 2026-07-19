@@ -29,7 +29,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                   className={"pointer-events-none h-px w-full -mb-px"}
             />
             <header className={[
-                "sticky z-50 h-fit w-full self-start relative overflow-visible bg-zinc-950 text-white",
+                "sticky z-50 h-fit w-full self-start overflow-visible bg-zinc-950 text-white",
                 "transition-[background-color,box-shadow,border-color]",
                 "duration-300 ease-out",
                 isSticky
