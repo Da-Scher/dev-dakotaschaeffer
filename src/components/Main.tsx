@@ -6,7 +6,7 @@ import Pips from "./Pips";
 
 function Main(): React.JSX.Element {
     return (
-        <main className={"grid grid-rows-[content-min_3fr] gap-1"}>
+        <main className={"grid grid-rows-[content-min_3fr] gap-1 overflow-visible"}>
             <Projects />
             <About />
             <Pips />
