@@ -91,7 +91,7 @@ function BoxGrid({
 
 
     return (
-        <div className="w-full overflow-visible pb-2">
+        <div className="w-full overflow-visible pb-2 content-center">
             <div
                 aria-hidden="true"
                 className="mx-auto grid w-max grid-flow-col"
