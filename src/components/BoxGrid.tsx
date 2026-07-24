@@ -17,6 +17,11 @@ interface BoxGridProps {
     edgeColor?: string;
 }
 
+interface CommitMap {
+    commitActivities: CommitActivity[];
+    daysAgo: number;
+}
+
 function startOfLocalDay(date: Date): Date {
     return new Date(
         date.getFullYear(),
@@ -62,8 +67,9 @@ function BoxGrid({
         return <p>Loading activities...</p>;
     }
 
-    const commitsByIndex: Map<number, CommitActivity[]> = new Map<number, CommitActivity[]>();
+    const commitsByIndex: Map<number, CommitMap> = new Map<number, CommitMap>();
 
+    for (let d = 0; d < 365; d++) commitsByIndex.set(d, {commitActivities: [], daysAgo: 364 - d})
     for (const c of activity.commits) {
         console.log(c)
         const daysAgo = getDaysAgo(c.authoredAt, today);
@@ -73,12 +79,12 @@ function BoxGrid({
         }
 
         const index: number = CELL_COUNT - 1 - daysAgo;
-        const commit: CommitActivity[] | undefined = commitsByIndex.get(index);
+        const commit: CommitMap | undefined = commitsByIndex.get(index);
         if (commit === undefined) {
-            commitsByIndex.set(index, [c])
+            commitsByIndex.set(index, {commitActivities: [c], daysAgo: daysAgo})
         }
         else {
-            commit.push(c);
+            commit.commitActivities.push(c);
         }
     }
 
@@ -100,15 +106,15 @@ function BoxGrid({
                 {Array.from({ length: CELL_COUNT }, (_, index) => {
                     const column = Math.floor(index / ROW_COUNT);
                     const row = index % ROW_COUNT;
-
-                    const commit: CommitActivity[] | undefined = commitsByIndex.get(index);
+                    const commit: CommitMap | undefined = commitsByIndex.get(index);
                     console.log(commit)
                     return (
                         <Pip
                             key={`${column}-${row}`}
                             data-column={column}
                             data-row={row}
-                            commits={commit}
+                            commitActivity={commit?.commitActivities}
+                            daysAgo={commit?.daysAgo}
                         />
                         /*
                         <div

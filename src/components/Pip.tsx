@@ -2,10 +2,8 @@ import React, {useState} from "react";
 import type {CommitActivity} from "../types/commit";
 
 type PipProps = {
-    repoName: string;
-    commitCount: number;
-    row: number;
-    col: number;
+    commitActivity: CommitActivity[] | undefined;
+    daysAgo: number | undefined;
 };
 
 function pipFillColorByCommitCount(count: number): string {
@@ -16,6 +14,16 @@ function pipFillColorByCommitCount(count: number): string {
     return "bg-green-300!";
 }
 
+function label(commits: number, days: number | undefined): string {
+    if (days === undefined) return "flabbergasted.";
+    const c: string = commits === 1 ? `1 commit ` : `${commits} commits `;
+    if (days === 1) return (
+        c + "today"
+    );
+    else return (
+        c + (days === 2 ? `1 day ago` : `${days - 1} days ago`)
+    );
+}
 
 function PipDetails(props: {commitList: CommitActivity[] | undefined}): React.JSX.Element {
     const commitsByRepo: Map<string, CommitActivity[]> = new Map<string, CommitActivity[]>()
@@ -25,7 +33,7 @@ function PipDetails(props: {commitList: CommitActivity[] | undefined}): React.JS
             <div
                 role="tooltip"
                 className={[
-                    "absolute bottom-full left-1/2 z-50 mb-2",
+                    "relative bottom-full left-1/2 z-50 mb-2",
                     "w-max -translate-x-1/2",
                     "rounded-md border border-zinc-700 overflow-visible",
                     "bg-zinc-950 px-3 py-2",
@@ -80,28 +88,32 @@ function PipDetails(props: {commitList: CommitActivity[] | undefined}): React.JS
     )
 }
 
-function Pip (prop: { commits: CommitActivity[] | undefined }): React.JSX.Element {
+function Pip ({commitActivity, daysAgo}: PipProps): React.JSX.Element {
     const [hovered, setHovered] = useState(false);
     const [clicked, setClicked] = useState(false);
-    const commits = prop.commits
+    const commits = commitActivity
+    const commitCount = commits?.length ?? 0
     return (
         <div
-            aria-label={`TODO: DATES`}
+            aria-label={
+            label(commitCount, daysAgo)
+            }
             className={[
                 "size-3 border border-zinc-500",
                 "transition-transform duration-150",
                 "hover:scale-125 focus-visible:scale-125",
-                pipFillColorByCommitCount(commits?.length ?? 0)
+                pipFillColorByCommitCount(commitCount)
             ].join(' ')}
 
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             onFocus={() => setHovered(true)}
             onBlur={() => setHovered(false)}
+            onClick={() => setClicked(!clicked)}
         >
-            {hovered && (
+            {(hovered || clicked) &&
                 <PipDetails commitList={commits}/>
-            )}
+            }
         </div>
     )
 }
