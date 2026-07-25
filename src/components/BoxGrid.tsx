@@ -13,8 +13,7 @@ const CELL_COUNT = COLUMN_COUNT * ROW_COUNT;
 interface BoxGridProps {
     cellSize?: number;
     gap?: number;
-    edgeWidth?: number;
-    edgeColor?: string;
+    selectCA: (caList: CommitActivity[] | undefined) => void;
 }
 
 interface CommitMap {
@@ -52,6 +51,7 @@ function getDaysAgo(dateString: string, today: Date): number {
 function BoxGrid({
         cellSize = 12,
         gap = 3,
+        selectCA,
     }: BoxGridProps): React.JSX.Element {
     const today = new Date();
     const [activity, setActivity] = useState<CommitActivityResponse | null>(null);
@@ -71,7 +71,7 @@ function BoxGrid({
 
     for (let d = 0; d < 365; d++) commitsByIndex.set(d, {commitActivities: [], daysAgo: 364 - d})
     for (const c of activity.commits) {
-        console.log(c)
+        //console.log(c)
         const daysAgo = getDaysAgo(c.authoredAt, today);
 
         if (daysAgo < 0 || daysAgo >= CELL_COUNT) {
@@ -97,7 +97,7 @@ function BoxGrid({
 
 
     return (
-        <div className="w-full overflow-visible pb-2 content-center">
+        <div className="absolute h-fit w-full overflow-visible pb-2 content-center">
             <div
                 aria-hidden="true"
                 className="mx-auto grid w-max grid-flow-col"
@@ -107,7 +107,7 @@ function BoxGrid({
                     const column = Math.floor(index / ROW_COUNT);
                     const row = index % ROW_COUNT;
                     const commit: CommitMap | undefined = commitsByIndex.get(index);
-                    console.log(commit)
+                    //console.log(commit)
                     return (
                         <Pip
                             key={`${column}-${row}`}
@@ -115,6 +115,7 @@ function BoxGrid({
                             data-row={row}
                             commitActivity={commit?.commitActivities}
                             daysAgo={commit?.daysAgo}
+                            selectCA={selectCA}
                         />
                         /*
                         <div
