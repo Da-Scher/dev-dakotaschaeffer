@@ -90,7 +90,7 @@ function BoxActivityDetails({commits, closeSidebarCB}: BoxActivityDetailsProps):
                             commits.length > 0 && (
                                 commits.map((commit: CommitActivity) => {
                                     const caAT: Date = new Date(commit.authoredAt);
-                                    const repo: string = commit.repository;
+                                    const repo: string = commit.repo;
                                     const mesg: string = commit.message;
                                     const time: string = caAT.getHours() + ":" + caAT.getMinutes() + ":" + caAT.getSeconds();
                                     const link: string = commit.url;

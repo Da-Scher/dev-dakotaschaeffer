@@ -1,12 +1,16 @@
 import React, {useState} from "react";
 import BoxGrid from "./BoxGrid";
-import type {CommitActivity} from "../types/commit";
+import type {CommitActivity, CommitActivityResponse} from "../types/commit";
 import BoxActivityDetails from "./BoxActivityDetails";
 
-function Pips(): React.JSX.Element {
+interface PipsProps {
+    commitActivityResponse: CommitActivityResponse | null;
+}
+
+function Pips({commitActivityResponse}: PipsProps): React.JSX.Element {
     const [selectedCommitActivity, setSelectedCommitActivity] = useState<CommitActivity[]>([]);
     const sidebarOpen: boolean = selectedCommitActivity.length > 0;
-    function handleSelectCA(caList: CommitActivity[] | undefined): void {
+    function handleSelectCA(caList: CommitActivity[]): void {
         setSelectedCommitActivity(caList ?? []);
     }
     function handleCloseSidebar(): void {
@@ -39,6 +43,7 @@ function Pips(): React.JSX.Element {
                 >
                     <BoxGrid
                         selectCA={handleSelectCA}
+                        commitActivityResponse={commitActivityResponse}
                     />
                 </div>
                 <div

@@ -2,9 +2,9 @@ import React, {useState} from "react";
 import type {CommitActivity} from "../types/commit";
 
 type PipProps = {
-    commitActivity: CommitActivity[] | undefined;
+    commitActivity: CommitActivity[];
     daysAgo: number | undefined;
-    selectCA: (caList: CommitActivity[] | undefined) => void;
+    selectCA: (caList: CommitActivity[]) => void;
 };
 
 function pipFillColorByCommitCount(count: number): string {
@@ -26,7 +26,7 @@ function label(commits: number, days: number | undefined): string {
     );
 }
 
-function PipDetails(props: {commitList: CommitActivity[] | undefined}): React.JSX.Element {
+function PipDetails(props: {commitList: CommitActivity[]}): React.JSX.Element {
     const commitsByRepo: Map<string, CommitActivity[]> = new Map<string, CommitActivity[]>()
 
     if (props.commitList === undefined) {
@@ -47,8 +47,8 @@ function PipDetails(props: {commitList: CommitActivity[] | undefined}): React.JS
     }
     for (const commit of props.commitList) {
         //console.log(commit);
-        const repo = commit.repository;
-        const commitRepo = commitsByRepo.get(repo);
+        const repo: string = commit.repo;
+        const commitRepo: CommitActivity[] | undefined = commitsByRepo.get(repo);
         if (commitRepo === undefined) {
             commitsByRepo.set(repo, [commit])
         }
@@ -91,9 +91,9 @@ function PipDetails(props: {commitList: CommitActivity[] | undefined}): React.JS
 
 function Pip ({commitActivity, daysAgo, selectCA}: PipProps): React.JSX.Element {
     const [hovered, setHovered] = useState(false);
-    const commits = commitActivity
-    const commitCount = commits?.length ?? 0
-    function handleSelectCA(commits: CommitActivity[] | undefined) {
+    const commits: CommitActivity[] = commitActivity
+    const commitCount: number = commits?.length ?? 0
+    function handleSelectCA(commits: CommitActivity[]): void {
         selectCA(commits)
     }
     return (

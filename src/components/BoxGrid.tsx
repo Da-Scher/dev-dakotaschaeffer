@@ -1,19 +1,19 @@
-import React, {useEffect, useState} from "react";
+import React from "react";
 import type { CSSProperties } from "react";
-import {getCommitActivity} from "../services/commitActivity";
 import type {CommitActivity, CommitActivityResponse} from "../types/commit";
 import Pip from "./Pip";
 
 
-const COLUMN_COUNT = 52;
-const ROW_COUNT = 7;
-const CELL_COUNT = COLUMN_COUNT * ROW_COUNT;
+const COLUMN_COUNT: number = 52;
+const ROW_COUNT: number = 7;
+const CELL_COUNT: number = COLUMN_COUNT * ROW_COUNT;
 
 
 interface BoxGridProps {
     cellSize?: number;
     gap?: number;
-    selectCA: (caList: CommitActivity[] | undefined) => void;
+    selectCA: (caList: CommitActivity[]) => void;
+    commitActivityResponse: CommitActivityResponse | null;
 }
 
 interface CommitMap {
@@ -38,8 +38,8 @@ function startOfLocalDay(date: Date): Date {
 }*/
 
 function getDaysAgo(dateString: string, today: Date): number {
-    const commitDate = startOfLocalDay(new Date(dateString));
-    const currentDate = startOfLocalDay(today);
+    const commitDate: Date = startOfLocalDay(new Date(dateString));
+    const currentDate:Date = startOfLocalDay(today);
 
     const milisecondsPerDay: number = 24 * 60 * 60 * 1000;
 
@@ -52,40 +52,37 @@ function BoxGrid({
         cellSize = 12,
         gap = 3,
         selectCA,
+        commitActivityResponse,
     }: BoxGridProps): React.JSX.Element {
-    const today = new Date();
-    const [activity, setActivity] = useState<CommitActivityResponse | null>(null);
-    useEffect(() =>{
-        getCommitActivity()
-            .then(setActivity)
-            .catch((error: unknown) => {
-                console.error(`Could not load commit activity: ${error}`);
-            });
-    }, []);
-
-    if (!activity) {
+    const today: Date = new Date();
+    if (!commitActivityResponse) {
         return <p>Loading activities...</p>;
     }
+    const commits: CommitActivity[] = commitActivityResponse.commits
+
+
 
     const commitsByIndex: Map<number, CommitMap> = new Map<number, CommitMap>();
 
-    for (let d = 0; d < 365; d++) commitsByIndex.set(d, {commitActivities: [], daysAgo: 364 - d})
-    for (const c of activity.commits) {
-        //console.log(c)
-        const daysAgo = getDaysAgo(c.authoredAt, today);
-
-        if (daysAgo < 0 || daysAgo >= CELL_COUNT) {
-            continue;
-        }
-
-        const index: number = CELL_COUNT - 1 - daysAgo;
-        const commit: CommitMap | undefined = commitsByIndex.get(index);
-        if (commit === undefined) {
-            commitsByIndex.set(index, {commitActivities: [c], daysAgo: daysAgo})
-        }
-        else {
-            commit.commitActivities.push(c);
-        }
+    for (let d: number = 0; d < 365; d++) commitsByIndex.set(d, {commitActivities: [], daysAgo: 364 - d})
+    if(commits !== undefined) {
+        commits.map((c: CommitActivity): void => {
+            const daysAgo: number = getDaysAgo(c.authoredAt, today);
+            if (daysAgo < 0 || daysAgo >= CELL_COUNT) {
+                return;
+            }
+            const index: number = CELL_COUNT - 1 - daysAgo;
+            const commit: CommitMap | undefined = commitsByIndex.get(index);
+            if (commit === undefined) {
+                commitsByIndex.set(index, {commitActivities: [c], daysAgo: daysAgo})
+            } else {
+                commit.commitActivities.push(c);
+            }
+        })
+        //for (const c of commits) {
+        //    //console.log(c)
+        //
+        //}
     }
 
     const gridStyle: CSSProperties = {
@@ -104,8 +101,8 @@ function BoxGrid({
                 style={gridStyle}
             >
                 {Array.from({ length: CELL_COUNT }, (_, index) => {
-                    const column = Math.floor(index / ROW_COUNT);
-                    const row = index % ROW_COUNT;
+                    const column: number = Math.floor(index / ROW_COUNT);
+                    const row: number = index % ROW_COUNT;
                     const commit: CommitMap | undefined = commitsByIndex.get(index);
                     //console.log(commit)
                     return (
@@ -113,7 +110,7 @@ function BoxGrid({
                             key={`${column}-${row}`}
                             data-column={column}
                             data-row={row}
-                            commitActivity={commit?.commitActivities}
+                            commitActivity={commit?.commitActivities ?? []}
                             daysAgo={commit?.daysAgo}
                             selectCA={selectCA}
                         />
