@@ -24,7 +24,7 @@ export default function HamburgerMenu({
     }
 
     return (
-        <div className={"bg-inherit"}>
+        <div>
             <button
                 type="button"
                 aria-label={isOpen ? "Close page navigation" : "Open page navigation"}
