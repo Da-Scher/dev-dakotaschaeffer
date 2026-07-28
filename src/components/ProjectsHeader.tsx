@@ -2,10 +2,10 @@ import React from "react";
 import {CommitActivity} from "../types/commit";
 
 interface ProjectsHeaderProps {
-    commitsActivity: CommitActivity[];
+    commitActivity: CommitActivity[];
 }
 
-function ProjectsHeader({commitsActivity}: ProjectsHeaderProps): React.JSX.Element {
+function ProjectsHeader({commitActivity}: ProjectsHeaderProps): React.JSX.Element {
 
     return (
         <>

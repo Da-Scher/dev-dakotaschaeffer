@@ -11,7 +11,7 @@ function Projects ({commitActivityResponse}: ProjectsProps): React.JSX.Element {
         return <p>Loading projects...</p>;
     }
 
-    const commitActivities: CommitActivity[] = commitActivityResponse.commits
+    const commitActivity: CommitActivity[] = commitActivityResponse.commits
 
     // order of appearance:
     // start with 5 latest projects.
