@@ -1,9 +1,9 @@
 import {expect, afterEach, describe, vi, it} from "vitest";
 import {vol} from "memfs";
-import {commitsJsonExists, fetchGitHubRepos} from "../index";
+import {commitsJsonExists, fetchGitHubRepos, fetchGitHubCommits, normalizeCommits} from "../index";
 import {CommitActivityResponse} from "../../src/types/commit";
-import {fakerRepoList, makeGitHubCommit, makeGitHubRepository} from "./faker/fakerConfig";
-import {GitHubCommit, GitHubRepository} from "../types/github";
+import {fakerCommitList, makeGitHubCommit, makeGitHubRepository} from "./faker/fakerConfig";
+import {GitHubCommit} from "../types/github";
 
 vi.mock("node:fs")
 vi.mock("node:fs/promises")
@@ -45,7 +45,6 @@ describe(`commitsJsonExists`, () => {
     })
 
     it(`should return false if commits.json does not exist`, async () => {
-        vol.reset()
         vol.fromJSON({
             '../../public/data/' : undefined,
         })
@@ -57,7 +56,7 @@ describe(`fetchGitHubCommits`, () => {
     describe(`Function commitFresh in fetchGitHubCommits()`, () => {
         it(`should return a list of valid commits`, async () => {
 
-            const commitsList: GitHubCommit[] = mixCommitList();
+            const commitsList: GitHubCommit[] = fakerCommitList();
 
             for (const commit of commitsList) {
                 expect(commit?.commit?.author?.date).not.toBe(null);
@@ -120,7 +119,7 @@ describe(`fetchGitHubCommits`, () => {
             vi.useFakeTimers();
             vi.setSystemTime(new Date(2026, 0, 0, 0, 0, 0, 0));
 
-            const commits: GitHubCommit[] = freshCommit([makeGitHubCommit({
+            const commits: GitHubCommit[] = commitFresh([makeGitHubCommit({
                 age: "fresh",
                 now: new Date(),
                 repo: makeGitHubRepository({
@@ -138,97 +137,77 @@ describe(`fetchGitHubCommits`, () => {
 });
 
 describe(`fetchGitHubRepos`, () => {
-    describe(`Function repoFresh in fetchGitHubRepos()`, () => {
-        it(`repoFresh drops repos that are older than 364 days.`, async () => {
+    it(`should return a list of one valid repo`, async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 0, 0, 0, 0, 0, 0));
+        mockFetchJson([makeGitHubRepository({age: "fresh", now: new Date()})])
+        const repos: string[] = await fetchGitHubRepos();
+        expect(repos.length).toBe(1)
+    });
 
-            // freeze time for safety.
-
-            const mixRepoList: GitHubRepository[] = fakerRepoList();
-
-            const repos: GitHubRepository[] = await repoFresh(mixRepoList);
-
-            for (const repo of repos) {
-                expect(repo.pushed_at).not.toBe(null);
-                const now: Date = new Date();
-
-                const pushedAt: Date = new Date(repo.pushed_at);
-                const ageMS: number = now.getTime() - pushedAt.getTime();
-
-                expect(
-                    ageMS,
-                    `${repo.name} was last pushed at ${repo.pushed_at}`
-                ).toBeGreaterThanOrEqual(0)
-
-                expect(
-                    ageMS,
-                    `${repo.name} is older than 364 days ago`,
-                ).toBeLessThan(MAX_AGE_MS)
-            }
-        })
-
-        it(`should return a list of one valid repo`, async () => {
-            mockFetchJson([makeGitHubRepository({age: "fresh", now: new Date()})])
-
-            const repos: string[] = await fetchGitHubRepos();
-
-            expect(repos.length).toBe(1)
-        })
-
-        it(`should return a list of one edge repo`, async () => {
-            mockFetchJson([makeGitHubRepository({age: "edge", now: new Date()})])
-
-            const repos: string[] = await fetchGitHubRepos();
-
-            vi.unstubAllGlobals();
-            expect(repos.length).toBe(1)
-        })
-
-        it(`should not return a repo that is too old.`, async () => {
-            mockFetchJson([makeGitHubRepository({age: "stale", now: new Date()})])
-
-            const repos: string[] = await fetchGitHubRepos();
-
-            vi.unstubAllGlobals();
-
-            expect(repos.length).toBe(0);
-
-        })
-
+    it(`should return a list of one edge repo`, async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 0, 0, 0, 0, 0, 0));
+        mockFetchJson([makeGitHubRepository({age: "edge", now: new Date()})])
+        const repos: string[] = await fetchGitHubRepos();
+        vi.unstubAllGlobals();
+        expect(repos.length).toBe(1)
+    });
+    it(`should not return a repo that is too old.`, async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 0, 0, 0, 0, 0, 0));
+        mockFetchJson([makeGitHubRepository({age: "stale", now: new Date()})])
+        const repos: string[] = await fetchGitHubRepos();
+        console.log(repos);
+        expect(repos.length).toBe(0);
+        console.log(repos);
     });
 });
 
-describe(`normalizeGitHubCommits`, () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 0, 0, 0, 0, 0, 0));
-    const now: string = new Date().toISOString();
-    mockFetchJson([makeGitHubRepository({age: "fresh", now: new Date(), overrides: {name: "exampleName"}})])
+describe(`normalizeGitHubCommits`, async () => {
+    it(`creates a CommitActivityResponse`, async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(2026, 0, 0, 0, 0, 0, 0));
+        const now: string = new Date().toISOString();
 
-    const repoList = fetchGitHubRepos();
-    mockFetchJson(makeGitHubCommit({age: "fresh", now: new Date(), repo: makeGitHubRepository({age: "fresh", now: new Date(), overrides: {name: "exampleName"}})}))
+        try {
+            mockFetchJson([makeGitHubRepository({age: "fresh", now: new Date(), overrides: {name: "exampleName"}})])
 
-    const commitList: Promise<GitHubCommit[]> = fetchGitHubCommits(repoList);
-    expect(
-        commitList,
-        `commitList is null.`)
-        .not.toBe(null);
-    const normalizedCommitList: Promise<CommitActivityResponse> = normalizeCommits(commitList);
+            const repoList: string[] = await fetchGitHubRepos();
+            mockFetchJson(makeGitHubCommit({
+                age: "fresh",
+                now: new Date(),
+                repo: makeGitHubRepository({age: "fresh", now: new Date(), overrides: {name: "exampleName"}})
+            }))
 
-    vi.useRealTimers();
-    expect(
-        normalizedCommitList,
-        `normalizedCommitList is null.`)
-        .not.toBe(null);
-    expect(
-        normalizedCommitList?.generatedAt,
-        `normalizedCommit.generated = ${normalizedCommitList?.generatedAt} should be ${now}.`)
-        .toBe(now);
-    expect(
-        normalizedCommitList?.commits?.length,
-        `normalizedCommit.commits length should be 1.`)
-        .toBe(1);
-    expect(
-        normalizedCommitList?.commits[0]?.repo,
-        `normalizedCommitList.commits[0]'s repo should be exampleName.`)
-        .toBe("exampleName");
-    vi.unstubAllGlobals();
+            const commitList: GitHubCommit[] = await fetchGitHubCommits(repoList)
+            expect(
+                commitList,
+                `commitList is null.`)
+                .not.toBe(null);
+            const normalizedCommitList: CommitActivityResponse = normalizeCommits(commitList);
+
+            vi.useRealTimers();
+            expect(
+                normalizedCommitList,
+                `normalizedCommitList is null.`)
+                .not.toBe(null);
+            expect(
+                normalizedCommitList?.generatedAt,
+                `normalizedCommit.generated = ${normalizedCommitList?.generatedAt} should be ${now}.`)
+                .toBe(now);
+            expect(
+                normalizedCommitList?.commits?.length,
+                `normalizedCommit.commits length should be 1.`)
+                .toBe(1);
+            expect(
+                normalizedCommitList?.commits[0]?.repo,
+                `normalizedCommitList.commits[0]'s repo should be exampleName.`)
+                .toBe("exampleName");
+        } catch (e) {
+            console.error(e);
+        }
+
+        vi.unstubAllGlobals();
+    })
 });

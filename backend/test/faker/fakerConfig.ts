@@ -49,7 +49,8 @@ function fakeDateByAge(
     }
 
     else if(age === "edge") {
-        return now;
+        //return now;
+        return new Date(cutoff.getTime());
     }
 
     return faker.date.between({
