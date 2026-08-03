@@ -44,7 +44,42 @@ export async function fetchGitHubRepos(): Promise<string[]> {
 }
 
 export async function fetchGitHubCommits(repoList: string[]): Promise<GitHubCommit[]> {
-    return Promise.reject("TODO: Complete Me.");
+    try {
+        const now = new Date().getTime();
+        const commitsGitHub: GitHubCommit[] = []
+        for await (const repo of repoList) {
+            const url: string = `https://api.github.com/Da-Scher/${repo}/commits`;
+            const response: Response = await fetch("https://api.github.com/repos/Da-Scher/${repo}/commits.json", {});
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch GitHub commit. ${response.statusText}`);
+            }
+            const json: GitHubCommit = await response.json();
+            for (const commit of json) {
+                if (commit.sha === undefined) {
+                    throw new Error(`Failed to parse sha from commit in ${url}`);
+                }
+                const sha: string = json.sha;
+                if (commit.commit.author === null) {
+                    throw new Error(`Failed to parse author from commit ${url}/${sha}`);
+                }
+                if (commit.commit.author.date === undefined) {
+                    throw new Error(`Failed to parse date from commit ${url}/${sha}`);
+                }
+                const authorDate: string = commit.commit.author.date;
+                if (now - new Date(authorDate).getTime() <= TIME_RANGE) {
+                    console.log(`time difference: ${now - new Date(authorDate).getTime()}`);
+                    commitsGitHub.push(commit);
+                }
+            }
+        }
+        return commitsGitHub;
+    } catch (e: unknown) {
+        if (e instanceof Error) {
+            console.error(`fetchGitHubCommits::Error(${e.message})`)
+            return []
+        }
+    }
 }
 
 export interface NormalizeCommitsOptions {

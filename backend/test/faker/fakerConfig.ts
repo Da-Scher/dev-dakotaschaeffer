@@ -126,7 +126,7 @@ export function makeGitHubCommit({
     const authorDate: string = fakeDateByAge(age, now).toISOString();
 
     return {
-        sha,
+        sha: sha,
         html_url:
             `${repo.html_url}/commit/${sha}`,
         commit: {
@@ -194,6 +194,7 @@ export function fakerCommitList({
             now: now,
             overrides: overrides,
         })
+        console.log(`fakerCommitList: ${ghCommit.sha}`);
         commitList.push(ghCommit);
     }
     return commitList;
