@@ -7,7 +7,7 @@ export interface GitHubRepository {
 export interface GitHubCommit {
     sha: string;
     html_url: string;
-
+    repo: string;
     commit: {
         message: string;
         author: {

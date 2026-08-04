@@ -69,6 +69,7 @@ export async function fetchGitHubCommits(repoList: string[]): Promise<GitHubComm
                 const authorDate: string = commit.commit.author.date;
                 if (now - new Date(authorDate).getTime() <= TIME_RANGE) {
                     console.log(`time difference: ${now - new Date(authorDate).getTime()}`);
+                    commit.repo = repo;
                     commitsGitHub.push(commit);
                 }
             }
@@ -89,9 +90,36 @@ export interface NormalizeCommitsOptions {
 }
 
 export function normalizeCommits(commitsList: GitHubCommit[]): CommitActivityResponse {
+    const caList: CommitActivity[] = [];
+    for (const commit of commitsList) {
+        const provider: "github" | "gitlab" | "codeberg" =
+        commit.html_url.includes("github") ? "github"
+        : commit.html_url.includes("gitlab") ? "gitlab"
+        : "codeberg"
+
+        const repo: string = commit.repo;
+        const sha: string = commit.sha;
+        const message: string = commit.commit.message;
+        const author: {name: string, date: string} | null = commit.commit.author;
+        if(author === null) {
+            console.error(`had to drop commit`)
+            continue;
+        }
+        const authoredAt: string = author.date;
+        const url: string = commit.html_url;
+
+        caList.push({
+            provider: provider,
+            repo: repo,
+            sha: sha,
+            message: message,
+            authoredAt: authoredAt,
+            url: url,
+        })
+    }
     return {
         generatedAt: new Date().toISOString(),
-        commits: [],
+        commits: caList,
     }
 }
 

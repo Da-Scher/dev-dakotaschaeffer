@@ -84,7 +84,7 @@ describe(`fetchGitHubCommits`, () => {
                 expect(
                     ageMS,
                     `${commit.sha} is older than 364 days ago. ${author.date}`,
-                ).toBeLessThan(MAX_AGE_MS)
+                ).toBeLessThanOrEqual(MAX_AGE_MS)
             }
         })
 
