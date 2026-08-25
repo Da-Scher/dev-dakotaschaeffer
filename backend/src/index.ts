@@ -4,11 +4,31 @@ import {loadEnvFile} from "node:process";
 loadEnvFile(".env");
 if (process.env.GITHUB_TOKEN === undefined || process.env.GITHUB_TOKEN === "ADD_GITHUB_TOKEN") throw new Error("GITHUB_TOKEN not defined. Did you add .env with your actual tokens?");
 
-export interface LanguageStats {
-    language: string;
+const START_TIMER = performance.now();
+
+type ProgrammingLanguage =
+    |   "C"
+    |   "C++"
+    |   "Haskell"
+    |   "HTML/CSS"
+    |   "GDScript"
+    |   "Java"
+    |   "JavaScript"
+    |   "Lua"
+    |   "OCamel"
+    |   "Python"
+    |   "Shell"
+    |   "TypeScript"
+    |   "Yaml"
+
+
+export interface LanguageStat {
     additions: number;
     deletions: number;
+    changes: number;
 }
+
+type LanguageStats = Partial<Record<ProgrammingLanguage, LanguageStat>>;
 
 export interface GitHubRepository {
     name: string;
@@ -46,6 +66,11 @@ export interface GitHubCommitFile {
     status: "added" | "modified" | "removed" | "renamed";
 }
 
+export interface NormalizedLanguageStats {
+    stats: LanguageStats;
+    totals: LanguageStat;
+}
+
 export interface CommitActivity {
     provider: "github" | "gitlab" | "codeberg";
     repo: string;
@@ -53,14 +78,22 @@ export interface CommitActivity {
     message: string;
     authoredAt: string;
     url: string;
-    languageStats: {
-        stats: LanguageStats[];
-        totals: {
-            additions: number;
-            deletions: number;
-            total: number;
-        };
-    };
+    languageStats: NormalizedLanguageStats;
+}
+
+export interface CodebergRepository {
+    name: string;
+    html_url: string;
+    updated_at: string;
+}
+
+export interface CodebergCommit {
+    sha: string;
+    html_url: string;
+    url: string;
+    commit: {message: string};
+    created: string;
+    repo: string;
 }
 
 export interface CommitActivityResponse {
@@ -72,7 +105,7 @@ const MS_IN_DAY: number = 24  * 60 * 60 * 1000;
 const TIME_RANGE: number = 364 * MS_IN_DAY;
 
 const GITHUB_HEADERS: HeadersInit = { "Accept": "application/vnd.github+json", "Authorization": `Bearer ${process.env.GITHUB_TOKEN}`, "X-GitHub-Api-Version": "2022-11-28" };
-
+const CODEBERG_HEADERS: HeadersInit = { "Accept": "application/json", "Authorization": `Bearer ${process.env.CODEBERG_TOKEN}` };
 export async function commitsJsonExists(): Promise<boolean> {
     try {
         await fs.promises.access("../public/data/commits.json", fs.constants.F_OK);
@@ -82,10 +115,13 @@ export async function commitsJsonExists(): Promise<boolean> {
     }
 }
 
-export function repoFresh(generatedAt: string | null, repo: GitHubRepository): boolean{
+export function repoFresh(generatedAt: string | null, repo: GitHubRepository | CodebergRepository): boolean{
     const cachedDate: Date | null = generatedAt === null ? null : new Date(generatedAt);
     const currentDate: Date = new Date();
-    const pushedAt: Date = new Date(repo.pushed_at);
+    const pushedAt: Date =
+        'pushed_at' in repo
+            ? new Date(repo.pushed_at)
+            : new Date(repo.updated_at);
     if (!cachedDate) {
         // returns true iff current time - pushed time is less than 1 years worth of ms.
         return currentDate.getTime() - pushedAt.getTime() <= TIME_RANGE;
@@ -117,70 +153,199 @@ export async function fetchGitHubRepos(generatedAt: string | null): Promise<stri
         .map((item: GitHubRepository): string => { return item.name })
 }
 
-export function commitFresh(generatedAt: string | null, commit: GitHubCommit): boolean {
+export async function fetchCodebergRepos(generatedAt: string | null): Promise<string[]> {
+    const response: Response = await fetch(
+        "https://codeberg.org/api/v1/users/dascher/repos",
+        {
+            headers: CODEBERG_HEADERS,
+        }
+    )
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch codeberg repos: ${response.statusText}`
+        )
+    }
+    const json: CodebergRepository[] = await response.json();
+
+    return json
+        .filter((item: CodebergRepository): boolean => { return repoFresh(generatedAt, item) })
+        .map((item: CodebergRepository): string => { return item.name })
+}
+
+export function commitFresh(generatedAt: string | null, commit: GitHubCommit | CodebergCommit): boolean {
     const cachedDate: Date | null = generatedAt === null ? null : new Date(generatedAt);
     const currentDate: Date = new Date();
-    const author: {name: string, date: string} | null = commit.commit.author;
-    if (author === null) {
-        console.warn(`Could not parse author.`);
-        return false;
-    }
-    else {
-        if (!author.date) {
-            console.warn(`Could not parse author.date.`);
+    // This check verifies that the commit is from GitHub.
+    if ('commit' in commit && 'author' in commit.commit) {
+        // Define author and check if its present.
+        const author: { name: string, date: string } | null = commit.commit.author;
+        if (author === null) {
+            console.warn(`Could not parse author.`);
             return false;
+        } else {
+            // If author is present, check if date is present.
+            if (!author.date) {
+                console.warn(`Could not parse author.date.`);
+                return false;
+            }
+        }
+        // Create a Date object from author.date.
+        const authorDate: Date = new Date(author.date);
+        // Check if cachedDate from commits.json is defined.
+        if (cachedDate === null) {
+            // Simply ignore the cachedDate test.
+            return currentDate.getTime() - authorDate.getTime() <= TIME_RANGE;
+        } else {
+            // Else add the cachedDate test.
+            return currentDate.getTime() - authorDate.getTime() <= TIME_RANGE &&
+                authorDate.getTime() >= cachedDate.getTime();
         }
     }
-    const authorDate: Date = new Date(author.date);
-    if (cachedDate === null) {
-        return currentDate.getTime() - authorDate.getTime() <= TIME_RANGE;
-    } else {
-        return currentDate.getTime() - authorDate.getTime() <= TIME_RANGE &&
-            authorDate.getTime() >= cachedDate.getTime();
+    // This check verifies that the commit is from Codeberg.
+    // Does this satisfy checks for GitTea and other Forgejo APIs?
+    else if ('created' in commit) {
+        // Define created and check if it exists.
+        const created: string | null = commit.created;
+        if (created === null) {
+            console.warn(`Could not parse created ISO date.`);
+            return false;
+        }
+        // Create a Date object from created.
+        const createdDate: Date = new Date(created);
+        // cachedDate check same as before.
+        if (cachedDate === null) {
+            return currentDate.getTime() - createdDate.getTime() <= TIME_RANGE;
+        } else {
+            return currentDate.getTime() - createdDate.getTime() <= TIME_RANGE &&
+                createdDate.getTime() >= cachedDate.getTime();
+        }
+    }
+    // TODO: else if FROM GitLab.
+    // break if both aren't the case.
+    else {
+        return false;
     }
 }
 
-export function getGitHubLanguageStatistics(files: GitHubCommitFile[]): LanguageStats[] {
-    const langStats: LanguageStats[] = [];
-    const language = (fe: string): string | null => {
-        if (fe.match(/^\.(ts|tsx|test.ts|config.ts)$/)) {
-            return "typescript;"
-        }
-        else if (fe.match(/^\.(js|jsx|test.js|config.js)$/)) {
-            return "javascript";
-        }
-        else if (fe.match(/^\.(css|html)$/)) {
-            return "html/css";
-        }
-        else if (fe.match(/^\.(c|h)$/)) {
-            return "c";
-        }
-        else if (fe.match(/^\.(cpp|hpp)$/)) {
-            return "c++";
-        }
-        else if (fe.match(/^\.gds$/)) {
-            return "godot script";
-        }
-        else if (fe.match(/^\.py$/)) {
-            return "python";
-        }
-        // in any other case, return null.
-        return null;
-    }
+export function getGitHubLanguageStatistics(files: GitHubCommitFile[]): LanguageStats {
+    const langStats: LanguageStats = {};
     for (const file of files) {
         const fileExtension: RegExpMatchArray | null = file.filename.match(/\..+$/)
         if (fileExtension === null) {
             console.warn(`Could not get a file extension from ${file.filename}. Text file?`);
         }
         else {
-            const lang: string | null = language(fileExtension[0]);
+            const lang: ProgrammingLanguage | null = getFileLanguage(fileExtension[0]);
             if (lang === null) {
                 console.warn(`Could not get a file extension from ${file.filename}. Unsupported language extension?`);
             }
             else {
-                langStats.push({language: lang, additions: file.additions, deletions: file.deletions})
+                langStats[lang] ??= {
+                    additions: 0,
+                    deletions: 0,
+                    changes: 0,
+                }
+                const stats: LanguageStat | undefined = langStats[lang];
+                if (stats !== undefined) {
+                    stats.additions = file.additions;
+                    stats.deletions = file.deletions;
+                    stats.changes = file.changes;
+                }
             }
         }
+    }
+    return langStats;
+}
+
+export function getFileLanguage(line: string): ProgrammingLanguage | null {
+    if (line.match(/^\.(ts|tsx|test.ts|config.ts)$/)) {
+        return "TypeScript"
+    }
+    else if (line.match(/^\.(js|jsx|test.js|config.js)$/)) {
+        return "JavaScript";
+    }
+    else if (line.match(/^\.(css|html)$/)) {
+        return "HTML/CSS";
+    }
+    else if (line.match(/^\.(c|h)$/)) {
+        return "C";
+    }
+    else if (line.match(/^\.(cpp|hpp)$/)) {
+        return "C++";
+    }
+    else if (line.match(/^\.gds$/)) {
+        return "GDScript";
+    }
+    else if (line.match(/^\.py$/)) {
+        return "Python";
+    }
+    else if (line.match(/^\.sh$/)) {
+        return "Shell";
+    }
+    // in any other case, return null.
+    return null;
+}
+
+export async function getCodebergLanguageStatistics(repo: string, sha: string): Promise<LanguageStats | null> {
+    const langStats: LanguageStats = {};
+    const url: string = `https://codeberg.org/api/v1/repos/dascher/${repo}/git/commits/${sha}.patch`;
+    const response: Response = await fetch(url, {headers: CODEBERG_HEADERS});
+    if(!response.ok) {
+        console.error(`Could not parse patch response from ${url}`);
+        return null;
+    }
+    const data: ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>> | undefined = response.body?.getReader();
+    if (!data) {
+        console.error(`Could not convert data to a ReadableStream`);
+        return null;
+    }
+    const decoder = new TextDecoder('utf-8');
+    let buffer: string = ""
+    let currentLanguage: ProgrammingLanguage | null = null;
+
+    try {
+        while (true) {
+            const { done, value } = await data.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, {stream: true});
+            let newlineIndex: number;
+
+            while ((newlineIndex = buffer.indexOf("\n")) >= 0) {
+                let line = buffer.slice(0, newlineIndex);
+                buffer = buffer.slice(newlineIndex + 1);
+                if (line.endsWith("\r")) line = line.slice(0, -1);
+
+                if (line.startsWith("---")) continue;
+                if (line.startsWith("+++ b/")) {
+                    const fileExtension: RegExpMatchArray | null = line.match(/\..+$/);
+                    if (fileExtension) {
+                        currentLanguage = getFileLanguage(fileExtension[0]);
+                    }
+                    else {
+                        console.error(`Could not parse file extension from ${line}`);
+                    }
+                }
+                else if ((line.startsWith("+") || line.startsWith("-")) && currentLanguage) {
+                    // If langStats[currentLanguage] doesn't exist, make it.
+                    langStats[currentLanguage] ??= {
+                        additions: 0,
+                        deletions: 0,
+                        changes: 0,
+                    };
+                    const stats: LanguageStat | undefined = langStats[currentLanguage];
+                    if (stats !== undefined) {
+                        // Add to additions if new line added. Add to deletions if old line removed.
+                        if (line.startsWith("+")) stats.additions += 1;
+                        else stats.deletions += 1;
+                        // In either case, increment changes.
+                        stats.changes++;
+                    }
+                }
+            }
+        }
+    } catch (e: unknown) {
+        console.error(e);
     }
     return langStats;
 }
@@ -216,7 +381,7 @@ export async function fetchGitHubCommits(generatedAt: string | null, repoList: s
                 //console.log(`working on ${commit.url}`);
                 const start: number = performance.now();
                 const commitResponse: Response = await fetch(commit.url, {headers: GITHUB_HEADERS});
-                console.log(`${performance.now() - start}: Retrieved commit: ${commit.sha}`);
+                //console.log(`${performance.now() - start}: Retrieved commit: ${commit.sha}`);
                 if (!commitResponse.ok) {
                     throw new Error(`${performance.now() - start}: Failed to fetch GitHub commit details for repo ${repo}: ${commit.sha}`);
                 }
@@ -224,27 +389,22 @@ export async function fetchGitHubCommits(generatedAt: string | null, repoList: s
                 const commitSha: string = commitData.sha;
                 const commitAuthorDate: string | undefined = commitData.commit.author?.date;
                 //console.log(commitData);
-                if (commitSha === undefined) {
-                    throw new Error(
-                        `${performance.now() - start}: Failed to parse sha from commit in ${url}`
-                    );
-                }
                 if (!commitSha) {
-                    console.warn(`${performance.now() - start}: Dropping commit with no sha from repo ${repo}`);
+                    console.error(`${performance.now() - start}: Dropping commit with no sha from repo ${repo}`);
                     continue;
                 }
                 if (!commitAuthorDate) {
-                    console.warn(`${performance.now() - start}: Dropping commit ${commitSha} with no author date`);
+                    console.error(`${performance.now() - start}: Dropping commit ${commitSha} with no author date`);
                     continue;
                 }
                 const commitAuthorDateMS: number = Date.parse(commitAuthorDate);
                 if (Number.isNaN(commitAuthorDateMS) || commitAuthorDateMS < 0) {
-                    console.warn(`${performance.now() - start}: Dropping commit ${commitSha} with invalid date: ` +
+                    console.error(`${performance.now() - start}: Dropping commit ${commitSha} with invalid date: ` +
                     `${commitAuthorDateMS}`);
                     continue;
                 }
                 if(commitData.files?.length === 0) {
-                    console.warn(`${performance.now() - start}: could not retrieve file information from commit ${commitSha}`)
+                    console.error(`${performance.now() - start}: could not retrieve file information from commit ${commitSha}`)
                 }
 
                 commitsGitHub.push(
@@ -253,73 +413,192 @@ export async function fetchGitHubCommits(generatedAt: string | null, repoList: s
                         repo
                     }
                 );
-                console.log(`${performance.now() - start}: Done with a commit.`);
+                //console.log(`${performance.now() - start}: Done with a commit.`);
                 setTimeout(() => {}, 1000);
             }
         }
         return commitsGitHub;
 }
 
+export async function fetchCodebergCommits(generatedAt: string | null, cbRepos: string[]): Promise<CodebergCommit[]> {
+    const commitsCodeberg: CodebergCommit[] = [];
+    for await (const repo of cbRepos) {
+        const url: string = `https://codeberg.org/api/v1/repos/dascher/${repo}/commits`;
+        const response: Response = await fetch(
+            url,
+            {
+                headers: CODEBERG_HEADERS,
+            }
+        )
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch Codeberg commits for repo ${repo}` +
+                `Status: ${response.status} :: StatusText: ${response.statusText}`
+            );
+        }
+        const responseData = await response.json() as CodebergCommit;
+
+        if (!Array.isArray(responseData)) {
+            throw new Error(
+                `Expected an array of Codeberg commits for repo ${repo}`
+            );
+        }
+        const commits: CodebergCommit[] = responseData.filter(
+            (commit: CodebergCommit): boolean => { return commitFresh(generatedAt, commit) }
+        );
+        for (const commit of commits) {
+            const response: Response = await fetch(
+                commit.url,
+                {
+                    headers: CODEBERG_HEADERS,
+                }
+            )
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to fetch Codeberg commit ${commit.url}` +
+                    `Status: ${response.status} :: StatusText: ${response.statusText}`
+                );
+            }
+            const commitData = await response.json() as CodebergCommit;
+            const commitSha: string = commitData.sha;
+            const commitCreated: string = commitData.created;
+
+            if (!commitSha) {
+                console.error(`Failed to parse sha from commit ${commit.url}`);
+                continue;
+            }
+            if (!commitCreated) {
+                console.error(`Failed to parse date from commit ${commit.url}`);
+                continue;
+            }
+            const commitCreatedMS: number = Date.parse(commitCreated);
+            if (Number.isNaN(commitCreatedMS) || commitCreatedMS < 0) {
+                console.error(`Dropping commit with invalid date: ${commitCreatedMS}`);
+            }
+            commitsCodeberg.push({
+                ...commitData,
+                repo
+            })
+        }
+    }
+    return commitsCodeberg;
+}
+
 export interface NormalizeCommitsOptions {
     commitsGitHub?: GitHubCommit[];
     commitsGitLab?: undefined;
-    commitsCodeberg?: undefined;
+    commitsCodeberg?: CodebergCommit[];
 }
 
-export function normalizeCommits({commitsGitHub = undefined, commitsGitLab = undefined, commitsCodeberg = undefined}: NormalizeCommitsOptions): CommitActivityResponse {
-    const caList: CommitActivity[] = [];
-    for (const commit of commitsGitHub? commitsGitHub : []) {
-        const provider = "github" as const;
-
-        const repo: string = commit.repo;
-        const sha: string = commit.sha;
-        const message: string = commit.commit.message;
-        const author: {name: string, date: string} | null = commit.commit.author;
-        if(author === null) {
-            console.error(`had to drop commit`)
-            continue;
+export function normalizeGitHubCommit(commit: GitHubCommit): CommitActivity | null {
+    const provider = "github" as const;
+    const repo: string = commit.repo;
+    const sha: string = commit.sha;
+    const message: string = commit.commit.message;
+    const author: {name: string; date: string} | null = commit.commit.author;
+    if (!author) {
+        console.error(`Had to drop commit. Author does not exist.`);
+        return null;
+    }
+    const authoredAt: string = author.date;
+    const url: string = commit.html_url;
+    const languageStats: NormalizedLanguageStats = {
+        stats: {},
+        totals: {
+            additions: 0,
+            deletions: 0,
+            changes: 0,
         }
-        const authoredAt: string = author.date;
-        const url: string = commit.html_url;
-        //console.log(commit.files);
-        const languageStats: {
-            stats: LanguageStats[],
-            totals: { additions: number, deletions: number, total: number }
-        } = {
-            stats: [],
-            totals: {
+    };
+    if (commit.files) {
+        languageStats.stats = getGitHubLanguageStatistics(commit.files);
+        languageStats.totals = Object.values(languageStats.stats).reduce<LanguageStat>(
+            (total, stat) => {
+                total.additions += stat.additions;
+                total.deletions += stat.deletions;
+                total.changes += stat.changes;
+
+                return total;
+            },
+            {
                 additions: 0,
                 deletions: 0,
-                total: 0
+                changes: 0,
             }
+        );
+    }
+    return {
+        provider,
+        repo,
+        sha,
+        message,
+        authoredAt,
+        url,
+        languageStats,
+    }
+}
+
+export async function normalizeCodebergCommit(commit: CodebergCommit): Promise<CommitActivity> {
+    const provider = "codeberg" as const;
+    const repo: string = commit.repo;
+    const sha: string = commit.sha;
+    const message: string = commit.commit.message;
+    const authoredAt: string = commit.created;
+    const url: string = commit.html_url;
+    const languageStats: NormalizedLanguageStats = {
+        stats: {},
+        totals: {
+            additions: 0,
+            deletions: 0,
+            changes: 0,
+        },
+    };
+    const stats: LanguageStats | null = await getCodebergLanguageStatistics(repo, sha);
+    if (stats) {
+        languageStats.stats = stats;
+        languageStats.totals = Object.values(languageStats.stats).reduce<LanguageStat>(
+            (total, stat) => {
+                total.additions += stat.additions;
+                total.deletions += stat.deletions;
+                total.changes += stat.changes;
+                return total;
+            },
+            {
+                additions: 0,
+                deletions: 0,
+                changes: 0,
+            }
+        )
+    }
+    else {
+        console.error(`Failed to get language stats for commit: ${commit.url}/${sha}`);
+    }
+    return {
+        provider,
+        repo,
+        sha,
+        message,
+        authoredAt,
+        url,
+        languageStats,
+    }
+}
+
+export async function normalizeCommits({commitsGitHub = undefined, commitsGitLab = undefined, commitsCodeberg = undefined}: NormalizeCommitsOptions): Promise<CommitActivityResponse> {
+    const caList: CommitActivity[] = [];
+    // normalize all GitHub commits
+    for (const commit of commitsGitHub? commitsGitHub : []) {
+        const check: CommitActivity | null = normalizeGitHubCommit(commit);
+        if (check) {
+            caList.push(check);
         }
-        if (commit.files) {
-            const stats: LanguageStats[] = getGitHubLanguageStatistics(commit.files);
-            languageStats.stats = stats;
-            languageStats.totals = {
-                        additions:
-                            stats.map(stat => stat.additions)
-                                .reduce((accumulator: number, current: number): number => accumulator + current, 0),
-                        deletions:
-                            stats.map(stat => stat.deletions)
-                                .reduce((accumulator: number, current: number): number => accumulator + current, 0),
-                        total:
-                            stats.map(stat => stat.additions)
-                                .reduce((accumulator: number, current: number): number => accumulator + current, 0)
-                            +
-                            stats.map(stat => stat.deletions)
-                                .reduce((accumulator: number, current: number): number => accumulator + current, 0),
-                    }
-                }
-        caList.push({
-            provider: provider,
-            repo: repo,
-            sha: sha,
-            message: message,
-            authoredAt: authoredAt,
-            url: url,
-            languageStats: languageStats,
-        })
+    }
+    // normalize all Codeberg commits
+    for (const commit of commitsCodeberg? commitsCodeberg : []) {
+        const check: CommitActivity | null = await normalizeCodebergCommit(commit);
+        if (check) {
+            caList.push(check);
+        }
     }
     return {
         generatedAt: new Date().toISOString(),
@@ -330,7 +609,7 @@ export function normalizeCommits({commitsGitHub = undefined, commitsGitLab = und
 export async function getNormalizedData(): Promise<boolean> {
     const timerStart: DOMHighResTimeStamp = performance.now();
     let generatedAt: string | null = null;
-    // check if file at '../public/data/commits.js exists
+    // check if file at '../public/data/commits.js' exists
     // create file if it does not.
     if(!await commitsJsonExists()) {
         console.log("../public/data/commits.json does not exist.");
@@ -339,43 +618,61 @@ export async function getNormalizedData(): Promise<boolean> {
         const fc: string = await fs.promises.readFile("../public/data/commits.json", "utf8");
         const commitsJson: CommitActivityResponse = JSON.parse(fc);
         if (commitsJson.generatedAt) {
-            console.log(commitsJson.generatedAt);
+            // console.log(commitsJson.generatedAt);
             generatedAt = commitsJson.generatedAt;
         }
         else {
-            console.error(`Failed to parse generatedAt from commits.json.`);
+            console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Failed to parse generatedAt from commits.json.`);
         }
     }
 
     // get GitHub repositories.
     const ghRepos: string[] = await fetchGitHubRepos(generatedAt).catch(
         (error) => {
-            console.error(`getNormalizedData()::fetchGitHubRepos() Error: ${error.message}`);
+            console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: fetchGitHubRepos() Error: ${error.message}`);
             return [];
         }
     );
     // dev only
     //const ghRepos: string[] = ["dev-dakotaschaeffer"];
     if (ghRepos.length === 0) {
-        console.error("No GitHub repos found.");
+        console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: No GitHub repos found.`);
         return false;
     }
     const timerGHRepos: DOMHighResTimeStamp = performance.now() - timerStart;
-
-    console.log(`Duration to get GitHub repos: ${timerGHRepos.toFixed(2)} ms`);
+    console.log(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Duration to get GitHub repos: ${timerGHRepos.toFixed(2)} ms`);
     const ghCommits: GitHubCommit[] = await fetchGitHubCommits(generatedAt, ghRepos).catch((error) => {
-        console.error(`getNormalizedData()::fetchGitHubCommits() Error: ${error.message}`);
+        console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: fetchGitHubCommits() Error: ${error.message}`);
         return [];
     });
     if (ghCommits.length === 0) {
-        console.error("No GitHub commits found.");
-        return false;
+        console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: No GitHub commits found.`);
     }
     const timerGHCommits: DOMHighResTimeStamp = performance.now() - timerStart;
-    console.log(`Duration to get ${ghCommits.length} GitHub commits: ${timerGHCommits.toFixed(2)} ms`);
-    const normalizedCommits: CommitActivityResponse = normalizeCommits({commitsGitHub: ghCommits});
+    console.log(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Duration to get ${ghCommits.length} GitHub commits: ${(timerGHCommits - timerGHRepos).toFixed(2)} ms`);
+    console.log(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Getting Codeberg repositories.`);
+    const cbRepos: string[] = await fetchCodebergRepos(generatedAt).catch(
+        (error) => {
+            console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: fetchCodebergRepos() error: ${error.message}`);
+            return [];
+        }
+    );
+    const timerCBRepos: DOMHighResTimeStamp = performance.now() - timerStart;
+    console.log(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Duration to get Codeberg repos: ${(timerCBRepos-timerGHCommits).toFixed(2)} ms`);
+    const cbCommits: CodebergCommit[] = await fetchCodebergCommits(generatedAt, cbRepos).catch(
+        (error) => {
+            console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: fetchCodebergCommits() Error: ${error.message}`)
+            return [];
+        }
+    )
+    if (cbCommits.length === 0) {
+        console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: No Codeberg commits.`)
+    }
+    const timerCBCommits: DOMHighResTimeStamp = performance.now() - timerStart;
+    console.log(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Duration to get Codeberg commits: ${(timerCBCommits - timerCBRepos).toFixed(2)} ms`);
+    const normalizedCommits: CommitActivityResponse = await normalizeCommits({commitsGitHub: ghCommits, commitsCodeberg: cbCommits});
     const timerNormalizedCommits: DOMHighResTimeStamp = performance.now() - timerStart;
-    console.log(`Duration to have normalized commits: ${timerNormalizedCommits.toFixed(2)} ms`);
+    console.log(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Duration to have normalized commits: ${timerNormalizedCommits.toFixed(2)} ms`);
     await fs.promises.writeFile("../public/data/commits.json", JSON.stringify(normalizedCommits, null, 2), "utf8");
     return false;
 }
