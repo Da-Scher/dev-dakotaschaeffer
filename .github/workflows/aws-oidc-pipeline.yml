@@ -1,0 +1,41 @@
+name: Update Commit Activities
+on:
+  push:
+    branches:
+      - '*'
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  update-activity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::904727092562:role/portfolio-oidc-role
+          aws-region: us-west-2
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Invoke Lambda
+        run: |
+          jq -n \
+            --arg provider "GitHub" \
+            --arg repo "${{ github.event.repository.name }}" \
+            --arg sha "${{ github.sha }}" \
+            '{
+              provider: $provider,
+              repo: $repo,
+              sha: $sha
+            }' > payload.json
+          
+          aws lambda invoke \
+            --function-name dev-dakotaschaeffer-backend \
+            --cli-binary-format raw-in-base64-out \
+            --payload fileb://payload.json \
+            response.json
+          
+          cat response.json
