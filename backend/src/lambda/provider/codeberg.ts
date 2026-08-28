@@ -1,4 +1,4 @@
-import {CommitPayload, CommitFile} from "../handler.js";
+import {CommitPayload, CommitFile, freshCommitCheck} from "../handler.js";
 
 export interface CodebergCommit {
     sha: string;
@@ -14,11 +14,7 @@ export async function getCBCommit(
     token: string,
     fetcher: typeof fetch = fetch
 ): Promise<CodebergCommit | null> {
-    console.log(`Secret exists: ${token.length > 0}`);
-    console.log(`token length: ${token.length}`);
-    console.log(`token prefix: ${token.slice(0, 4)}`);
     const url: string = `https://codeberg.org/api/v1/repos/dascher/${payload.repo}/git/commits/${payload.sha}`;
-    console.log(`url: ${url}`);
     const response: Response = await fetcher(url, {
             headers: {
                 Accept: 'application/json',
@@ -28,8 +24,15 @@ export async function getCBCommit(
     if (!response.ok) {
         return null;
     }
+    // verify that the commit is not too old to continue
+    const json: CodebergCommit = await response.json() as CodebergCommit;
+    const commitDate: number = new Date(json.created).getTime();
 
-    return await response.json() as CodebergCommit;
+    if (!freshCommitCheck(commitDate)) {
+        console.warn(`Commit is older than 364 days from mightnight today in ms`);
+        return null;
+    }
+    return json;
 }
 
 export async function getCBPatch(

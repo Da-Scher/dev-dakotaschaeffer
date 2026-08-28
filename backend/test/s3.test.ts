@@ -106,4 +106,158 @@ describe("S3Client tests", async () => {
 
         expect(send).toHaveBeenCalledOnce();
     });
+
+    it("filters out commits that are older than but not equal to 364 days from midnight today", async () => {
+        const fakeDate: Date = new Date("2026-08-26T00:00:00Z");
+        vi.useFakeTimers();
+        vi.setSystemTime(fakeDate);
+        const existingCommits: CommitActivityResponse = {
+            generatedAt: "2026-08-25T00:00:00Z",
+            commits: [
+                {
+                    provider: "GitHub",
+                    repo: "test-github",
+                    sha: "abc123",
+                    message: "test commit",
+                    authoredAt: "2020-08-24T00:00:00Z",
+                    url: "https://github.com/...",
+                    languageStats: undefined,
+                },
+                {
+                    provider: "GitHub",
+                    repo: "test-github",
+                    sha: "abc123",
+                    message: "test commit",
+                    authoredAt: "2025-08-27T00:00:00Z",
+                    url: "https://github.com/...",
+                    languageStats: {
+                        stats: {
+                            "C++": {
+                                additions: 100,
+                                deletions: 20,
+                                changes: 120,
+                            },
+                        },
+                        totals: {
+                            additions: 100,
+                            deletions: 20,
+                            changes: 120,
+                        },
+                    },
+                },
+                {
+                    provider: "GitHub",
+                    repo: "test-github",
+                    sha: "abc123",
+                    message: "test commit",
+                    authoredAt: "2025-08-26T12:00:00Z",
+                    url: "https://github.com/...",
+                    languageStats: {
+                        stats: {
+                            "OCamel": {
+                                additions: 100,
+                                deletions: 20,
+                                changes: 120,
+                            },
+                        },
+                        totals: {
+                            additions: 100,
+                            deletions: 20,
+                            changes: 120,
+                        },
+                    }
+                },
+                {
+                    provider: "Codeberg",
+                    repo: "test-codeberg",
+                    sha: "abc123",
+                    message: "test commit",
+                    authoredAt: "2025-08-26T00:00:00Z",
+                    url: "https://codeberg.org/...",
+                    languageStats: {
+                        stats: {
+                            "TypeScript": {
+                                additions: 20,
+                                deletions: 80,
+                                changes: 100,
+                            },
+                        },
+                        totals: {
+                            additions: 20,
+                            deletions: 80,
+                            changes: 100,
+                        },
+                    }
+                }
+            ]
+        };
+        const newCommitActivity: CommitActivityResponse =
+            {
+                generatedAt: "2026-08-25T00:00:00Z",
+                commits: [
+                    {
+                        provider: "GitHub",
+                        repo: "test-github",
+                        sha: "abc123",
+                        message: "test commit",
+                        authoredAt: "2025-08-27T00:00:00Z",
+                        url: "https://github.com/...",
+                        languageStats: {
+                            stats: {
+                                "C++": {
+                                    additions: 100,
+                                        deletions: 20,
+                                        changes: 120,
+                                },
+                            },
+                            totals: {
+                                additions: 100,
+                                    deletions: 20,
+                                    changes: 120,
+                            },
+                        },
+                    },
+                    {
+                provider: "GitHub",
+                repo: "test-github",
+                sha: "abc123",
+                message: "test commit",
+                authoredAt: "2025-08-26T12:00:00Z",
+                url: "https://github.com/...",
+                languageStats: {
+                stats: {
+                    "OCamel": {
+                        additions: 100,
+                        deletions: 20,
+                        changes: 120,
+                    },
+                },
+                    totals: {
+                        additions: 100,
+                        deletions: 20,
+                        changes: 120,
+                    },
+                }
+            },
+        ]
+        };
+        const send: Mock<Procedure> = vi.fn().mockResolvedValue({
+            Body: {
+                transformToString: vi.fn().mockResolvedValue(
+                    JSON.stringify(existingCommits)
+                )
+            },
+            ETag: '"etag-123"',
+        });
+        const mockS3 = {
+            send
+        } as unknown as S3Client;
+        const result: LoadedCommits = await loadCommits(mockS3, "test-bucket", "commits.json");
+
+        expect(result.commitActivityResponse).toEqual(newCommitActivity);
+
+        expect(result.etag).toBe('"etag-123"');
+
+        expect(send).toHaveBeenCalledOnce();
+    });
 })

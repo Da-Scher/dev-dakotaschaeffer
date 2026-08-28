@@ -50,7 +50,6 @@ export interface NormalizedLanguageStats {
 export type LanguageStats = Partial<Record<ProgrammingLanguage, LanguageStat>>
 
 export const handler: (payload: CommitPayload) => Promise<void> = async (payload: CommitPayload): Promise<void> => {
-    console.log(`payload: ${JSON.stringify(payload)}`);
     const bucket: string | undefined = process.env.COMMIT_BUCKET;
     if (!bucket) {
         throw new Error("COMMITS_BUCKET is not defined.");
@@ -121,6 +120,22 @@ export const handler: (payload: CommitPayload) => Promise<void> = async (payload
     //    commitActivityResponse,
     //    etag,
     //);
+}
+
+export function freshCommitCheck(commitCreatedMS: number): boolean {
+    const currentDateFromMidnight: Date = new Date();
+    currentDateFromMidnight.setHours(0, 0, 0, 0);
+    currentDateFromMidnight.getDate()
+    const MS_IN_DAY: number = 24 * 60 * 60 * 1000;
+    const LIMIT_DAYS_IN_MS = 364 * MS_IN_DAY;
+
+    //console.log(currentDateFromMidnight.getTime() - commitCreatedMS)
+    //console.log(LIMIT_DAYS_IN_MS - (currentDateFromMidnight.getTime() - commitCreatedMS));
+    if (currentDateFromMidnight.getTime() - commitCreatedMS > LIMIT_DAYS_IN_MS) {
+        console.warn(`Commit is older than one year from midnight today.`);
+        return false;
+    }
+    return true;
 }
 
 export async function writeCommitToS3Bucket(s3: S3Client, bucket: string | undefined, commit: CommitActivity): Promise<void> {

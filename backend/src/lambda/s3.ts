@@ -1,6 +1,6 @@
 import {GetObjectCommand, GetObjectCommandOutput, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 
-import type {CommitActivityResponse} from "./commit/commit.js";
+import type {CommitActivity, CommitActivityResponse} from "./commit/commit.js";
 
 export interface LoadedCommits {
     commitActivityResponse: CommitActivityResponse;
@@ -25,10 +25,21 @@ export async function loadCommits(
 
     const json: string = await response.Body.transformToString();
 
-    const parsed: unknown = JSON.parse(json);
+    const parsed: CommitActivityResponse = JSON.parse(json);
+
+    const currentDateFromMidnight: Date = new Date;
+    currentDateFromMidnight.setHours(0, 0, 0, 0);
+    currentDateFromMidnight.setDate(currentDateFromMidnight.getDate());
+    const MS_IN_DAY: number = 24 * 60 * 60 * 1000;
+    const LIMIT_DAYS_IN_MS = 364 * MS_IN_DAY;
+    const COMMIT_AGE_LIMIT_IN_MS_FROM_MIDNIGHT: number = currentDateFromMidnight.getTime() - LIMIT_DAYS_IN_MS;
+    const filteredParsed: CommitActivity[] = parsed.commits.filter((item: CommitActivity): boolean => {
+        const itemDate = new Date(item.authoredAt).getTime();
+        return itemDate - COMMIT_AGE_LIMIT_IN_MS_FROM_MIDNIGHT >= 0;
+    });
 
     return {
-        commitActivityResponse: parsed as CommitActivityResponse,
+        commitActivityResponse: {generatedAt: parsed.generatedAt, commits: filteredParsed},
         etag: response.ETag,
     };
 }

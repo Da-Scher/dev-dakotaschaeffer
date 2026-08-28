@@ -2,7 +2,8 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 
 import {
     CommitPayload, handler, getFileLanguage, CommitFile,
-    NormalizedLanguageStats, normalizeLanguageStatistics, normalizeCommit
+    NormalizedLanguageStats, normalizeLanguageStatistics, normalizeCommit,
+    freshCommitCheck
 } from "../src/lambda/handler";
 
 import {getGHCommit, GitHubCommit} from "../src/lambda/provider/github";
@@ -446,5 +447,68 @@ describe("normalizeCommit", () => {
                 languageStats: undefined,
             }
         )
+    });
+})
+
+describe("freshCommitCheck", () => {
+    it("accepts commits that are less than or equal in age to 363 days ago", () => {
+        const todaysDate: Date = new Date("2026-08-25T12:00:00Z");
+        vi.useFakeTimers();
+        vi.setSystemTime(todaysDate);
+        const fakeGHCommit: GitHubCommit = {
+            sha: "abc123",
+            html_url: "https://github.com/...",
+            url: "https://api.github.com/...",
+            commit: {
+                message: "test-commit",
+                author: {
+                    name: "Dakota",
+                    date: "2026-01-01T00:00:00Z",
+                },
+            },
+        };
+        const dateInMS: number = new Date(fakeGHCommit.commit.author.date).getTime()
+        expect(freshCommitCheck(dateInMS)).toEqual<boolean>(true);
+        vi.useRealTimers();
+    });
+    it("accepts commits that are between 363 and 364 days ago from midnight 2026-08-25", () => {
+        const todaysDate: Date = new Date("2026-08-25T12:00:00Z");
+        vi.useFakeTimers();
+        vi.setSystemTime(todaysDate);
+        const fakeGHCommit: GitHubCommit = {
+            sha: "abc123",
+            html_url: "https://github.com/...",
+            url: "https://api.github.com/...",
+            commit: {
+                message: "test-commit",
+                author: {
+                    name: "Dakota",
+                    date: "2025-08-25-T01:00:00Z",
+                },
+            },
+        };
+        const dateInMS: number = new Date(fakeGHCommit.commit.author.date).getTime()
+        expect(freshCommitCheck(dateInMS)).toEqual<boolean>(true);
+        vi.useRealTimers();
+    });
+    it("rejects commits that are 364 days or older", () => {
+        const todaysDate: Date = new Date("2026-08-25T12:00:00Z");
+        vi.useFakeTimers();
+        vi.setSystemTime(todaysDate);
+        const fakeGHCommit: GitHubCommit = {
+            sha: "abc123",
+            html_url: "https://github.com/...",
+            url: "https://api.github.com/...",
+            commit: {
+                message: "test-commit",
+                author: {
+                    name: "Dakota",
+                    date: "2024-08-01T00:00:00Z",
+                },
+            },
+        };
+        const dateInMS: number = new Date(fakeGHCommit.commit.author.date).getTime()
+        expect(freshCommitCheck(dateInMS)).toEqual<boolean>(false);
+        vi.useRealTimers();
     });
 })

@@ -1,4 +1,4 @@
-import {CommitPayload, CommitFile} from "../handler.js";
+import {CommitPayload, CommitFile, freshCommitCheck} from "../handler.js";
 
 export interface GitHubCommit {
     sha: string;
@@ -23,11 +23,7 @@ export async function getGHCommit(
     token: string,
     fetcher: typeof fetch = fetch
 ): Promise<GitHubCommit | null> {
-    console.log(`Secret exists: ${token.length > 0}`);
-    console.log(`token length: ${token.length}`);
-    console.log(`token prefix: ${token.slice(0, 4)}`);
     const url: string = `https://api.github.com/repos/Da-Scher/${payload.repo}/commits/${payload.sha}`;
-    console.log(`url: ${url}`);
     const response: Response = await fetcher(url, {
         headers: {
             Accept: "application/vnd.github+json",
@@ -41,7 +37,16 @@ export async function getGHCommit(
         return null;
     }
 
-    return await response.json() as GitHubCommit;
+    // verify that the commit is not too old to continue
+    const json: GitHubCommit = await response.json() as GitHubCommit;
+    const commitDate: number = new Date(json.commit.author.date).getTime();
+
+    if (!freshCommitCheck(commitDate)) {
+        console.warn(`Commit is older than one year from midnight today.`);
+        return null;
+    }
+
+    return json;
 }
 
 export function normalizeGHCommit(commit: GitHubCommit): [string, string, string] {
