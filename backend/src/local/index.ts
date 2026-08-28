@@ -4,8 +4,6 @@ import {loadEnvFile} from "node:process";
 loadEnvFile(".env");
 if (process.env.GITHUB_TOKEN === undefined || process.env.GITHUB_TOKEN === "ADD_GITHUB_TOKEN") throw new Error("GITHUB_TOKEN not defined. Did you add .env with your actual tokens?");
 
-const START_TIMER = performance.now();
-
 type ProgrammingLanguage =
     |   "C"
     |   "C++"
@@ -267,7 +265,7 @@ export function getFileLanguage(line: string): ProgrammingLanguage | null {
     else if (line.match(/^\.(css|html)$/)) {
         return "HTML/CSS";
     }
-    else if (line.match(/^\.(c|h)$/)) {
+    else if (line.match(/^\.[ch]$/)) {
         return "C";
     }
     else if (line.match(/^\.(cpp|hpp)$/)) {
@@ -354,7 +352,7 @@ export async function fetchGitHubCommits(generatedAt: string | null, repoList: s
         const commitsGitHub: GitHubCommit[] = []
         for await (const repo of repoList) {
             const url: string = `https://api.github.com/repos/Da-Scher/${repo}/commits`;
-            //console.log(url);
+            console.log(url);
             const response: Response = await fetch(
                 url,
                 {
@@ -376,12 +374,12 @@ export async function fetchGitHubCommits(generatedAt: string | null, repoList: s
             const commits: GitHubCommit[] =
                 responseData
                     .filter((item: GitHubCommit) => { return commitFresh(generatedAt, item)} );
-            //console.log(commits.length);
+            console.log(commits.length);
             for (const commit of commits) {
-                //console.log(`working on ${commit.url}`);
+                console.log(`working on ${commit.url}`);
                 const start: number = performance.now();
                 const commitResponse: Response = await fetch(commit.url, {headers: GITHUB_HEADERS});
-                //console.log(`${performance.now() - start}: Retrieved commit: ${commit.sha}`);
+                console.log(`${performance.now() - start}: Retrieved commit: ${commit.sha}`);
                 if (!commitResponse.ok) {
                     throw new Error(`${performance.now() - start}: Failed to fetch GitHub commit details for repo ${repo}: ${commit.sha}`);
                 }
@@ -608,23 +606,45 @@ export async function normalizeCommits({commitsGitHub = undefined, commitsGitLab
 
 export async function getNormalizedData(): Promise<boolean> {
     const timerStart: DOMHighResTimeStamp = performance.now();
-    let generatedAt: string | null = null;
     // check if file at '../public/data/commits.js' exists
     // create file if it does not.
-    if(!await commitsJsonExists()) {
-        console.log("../public/data/commits.json does not exist.");
-    }
-    else {
-        const fc: string = await fs.promises.readFile("../public/data/commits.json", "utf8");
-        const commitsJson: CommitActivityResponse = JSON.parse(fc);
-        if (commitsJson.generatedAt) {
-            // console.log(commitsJson.generatedAt);
-            generatedAt = commitsJson.generatedAt;
+    const {commitActivityResponse, generatedAt} = await (async (): Promise<{
+        commitActivityResponse: CommitActivityResponse,
+        generatedAt: string | null,
+    }> => {
+        if (!await commitsJsonExists()) {
+            console.log("../public/data/commits.json does not exist.");
+            return {
+                commitActivityResponse: {
+                    generatedAt: "",
+                    commits: [],
+                },
+                generatedAt: null,
+            };
+        } else {
+            const fc: string = await fs.promises.readFile("../public/data/commits.json", "utf8");
+            const fcJson = JSON.parse(fc);
+            if (fcJson.generatedAt) {
+                // console.log(commitsJson.generatedAt);
+                return {
+                    commitActivityResponse: {
+                        generatedAt: fcJson.generatedAt,
+                        commits: fcJson.commits,
+                    },
+                    generatedAt: fcJson.generatedAt,
+                };
+            } else {
+                console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Failed to parse generatedAt from commits.json.`);
+                return {
+                    commitActivityResponse: {
+                        generatedAt: "",
+                        commits: [],
+                    },
+                    generatedAt: null,
+                };
+            }
         }
-        else {
-            console.error(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Failed to parse generatedAt from commits.json.`);
-        }
-    }
+    })();
 
     // get GitHub repositories.
     const ghRepos: string[] = await fetchGitHubRepos(generatedAt).catch(
@@ -673,7 +693,14 @@ export async function getNormalizedData(): Promise<boolean> {
     const normalizedCommits: CommitActivityResponse = await normalizeCommits({commitsGitHub: ghCommits, commitsCodeberg: cbCommits});
     const timerNormalizedCommits: DOMHighResTimeStamp = performance.now() - timerStart;
     console.log(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Duration to have normalized commits: ${timerNormalizedCommits.toFixed(2)} ms`);
+    if (commitActivityResponse.generatedAt === "") {
+        commitActivityResponse.generatedAt = normalizedCommits.generatedAt;
+        commitActivityResponse.commits = normalizedCommits.commits;
+        await fs.promises.writeFile("../public/data/commits.json", JSON.stringify(commitActivityResponse, null, 2), "utf8");
+    }
+    else {
     await fs.promises.writeFile("../public/data/commits.json", JSON.stringify(normalizedCommits, null, 2), "utf8");
+    }
     return false;
 }
 

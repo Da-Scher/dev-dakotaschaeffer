@@ -7,11 +7,14 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "./dist/",
-    "rootDir": "./",
+    "outDir": "./dist",
+    "rootDir": "./src",
     "types": ["node"],
   },
   "include": [
-    "./src/index.ts"
+    "./src/lambda/*",
+    "./src/lambda/commit/*",
+    "./src/lambda/provider/*",
+    "./src/local/*",
   ]
 }
