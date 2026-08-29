@@ -1,5 +1,7 @@
 import React from "react";
-import type {CommitActivity, CommitActivityResponse} from "../types/commit";
+import type {CommitActivityResponse} from "../types/commit";
+import ProjectsLanguageStats from "./ProjectsLanguageStats";
+import ProjectsSearch from "./ProjectsSearch";
 
 export interface ProjectsHeaderProps {
     commitActivityResponse: CommitActivityResponse | null;
@@ -9,12 +11,11 @@ function ProjectsHeader({commitActivityResponse}: ProjectsHeaderProps): React.JS
     if (!commitActivityResponse) {
         return <p>Loading commits...</p>
     }
-    const commitActivities: CommitActivity[] = commitActivityResponse.commits;
-
 
     return (
         <>
-            <p>Projects Header.</p>
+            <ProjectsLanguageStats commitActivityResponse={commitActivityResponse} />
+            <ProjectsSearch languageSearch={null} nameSearch={null} dateSearch={true} />
         </>
     )
 }
