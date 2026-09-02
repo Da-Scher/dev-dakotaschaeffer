@@ -1,0 +1,22 @@
+/* Mobile layout */
+.language-stats {
+    display: grid;
+    grid-template-areas:
+            "hourly language-chart"
+            "weekly language-chart";
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 2rem;
+}
+
+/* Desktop layout */
+@media (min-width: 769px) {
+    .language-stats {
+        grid-template-areas:
+            "hourly language-chart"
+            "weekly language-chart";
+        grid-template-columns: minmax(0, 2fr) minmax(0, auto);
+        grid-template-rows: auto 1fr;
+        align-items: start;
+    }
+}
