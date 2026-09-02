@@ -1,23 +1,42 @@
 import React from "react";
 
-export interface ProjectsSearchProps {
-    languageSearch: ProgrammingLanguage | null;
-    nameSearch: string | null;
-    dateSearch: boolean;
-}
-
-function ProjectsSearch(
-    {
-        languageSearch = null,
-        nameSearch = null,
-        dateSearch = true
-    }: ProjectsSearchProps
-): React.JSX.Element {
-
+function ProjectsSearch(): React.JSX.Element {
+    const [searchTags, setSearchTags] = React.useState<string[]>(["test"]);
     return (
-        <>
-            <p>Projects Search: {languageSearch} {nameSearch} {dateSearch}</p>
-        </>
+        <form
+            role={"search"}
+            onSubmit={() => {}}
+        >
+            <label
+                htmlFor={"projects-search"}
+            >
+                {
+                    searchTags.length > 0
+                    ? searchTags.map((tag) => (
+                        <span
+                            key={tag}
+                        >
+                            {tag}
+                        </span>
+                    ))
+                    : "Search project by name or language."
+                }
+            </label>
+            <input
+                type={"search"}
+                id={"projects-search"}
+                name={"tag-input"}
+                value={""}
+                onChange={() => {}}
+                placeholder={"Tag..."}
+            />
+            <button
+                type="submit"
+            >
+                Add tag
+            </button>
+
+        </form>
     )
 }
 
