@@ -1,0 +1,155 @@
+@property --draw-percentage {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+}
+@property --offset-percentage {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+}
+
+.activity-chart {
+    padding: 1rem;
+    color: #f3f4f6;
+    background-color: #111827;
+    border: 1px solid #374151;
+    border-radius: 0.75rem;
+}
+
+.language-chart {
+    grid-area: language-chart;
+    display: grid;
+    grid-template-areas:
+        "language-chart-pie"
+        "language-chart-table";
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    align-items: start;
+}
+
+.pie-chart {
+    display: grid;
+    grid-area: language-chart-pie;
+    justify-self: center;
+    align-items: center;
+}
+
+.pie-chart li{
+    display: grid;
+    position: relative;
+    place-items: center;
+
+    grid-row: 1;
+    grid-column: 1;
+
+    --radius: 10vmin;
+
+    --bg-color: var(--data-color);
+    --offset: calc(360deg * var(--accum) / 100);
+
+    --weighing: calc(var(--data-percentage));
+    --percentage: calc(var(--weighing) * 1%);
+    --draw: calc(var(--draw-percentage) * 1%);
+
+
+    width: calc(var(--radius) * 2);
+    aspect-ratio: 1;
+    border-radius: 50%;
+
+    background: conic-gradient(
+            from calc(var(--offset)),
+            var(--bg-color) 0% var(--draw),
+            transparent var(--percentage) 100%
+    );
+
+    -webkit-mask: radial-gradient(
+        circle at center,
+        transparent 0 10vmin,
+        black calc(10vmin + 1px)
+    );
+
+    mask: radial-gradient(
+        circle at center,
+        transparent 0 5vmin,
+        black calc(5vmin + 1px)
+    );
+
+    animation: piechart-grow 300ms ease-in-out forwards;
+    animation-delay: calc(var(--slice-index) * 60ms);
+
+}
+
+.pie-chart li {
+    transition:
+            filter 150ms ease,
+            opacity 150ms ease;
+}
+
+.pie-chart:not(.is-animating):has(li.is-highlighted) li:not(.is-highlighted) {
+    opacity: 0.35;
+}
+
+.pie-chart:not(.is-animating) li.is-highlighted {
+    filter: brightness(1.25);
+}
+
+.pie-chart::after {
+    content: '';
+    grid-row: 1;
+    grid-column: 1;
+    place-self: center;
+    width: 20vmin;
+    aspect-ratio: 1;
+    border-radius: 50%;
+
+    background-color: transparent;
+
+    z-index: 2;
+    pointer-events: none;
+}
+
+.language-chart table {
+    width: 100%;
+    grid-area: language-chart-table;
+    margin-top: 5rem;
+    border-collapse: collapse;
+}
+
+.language-chart th,
+.language-chart td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid currentColor;
+    text-align: left;
+}
+
+.language-chart tbody tr {
+    cursor: default;
+}
+
+.language-chart tbody tr:hover,
+.language-chart tbody tr:focus {
+    background-color: rgb(255 255 255 / 10%);
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+}
+
+.language-color {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+@keyframes piechart-grow {
+    from {
+        --draw-percentage: 0;
+        --offset-percentage: 0;
+    }
+    to {
+        --draw-percentage: var(--data-percentage);
+        --offset-percentage: 1;
+    }
+}
