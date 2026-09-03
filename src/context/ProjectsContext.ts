@@ -1,14 +1,15 @@
 import { createContext } from "react";
-import type { CommitActivity } from "../types/commits";
+import type { CommitActivity } from "../types/commit";
 import type { ProgrammingLanguage } from "../types/programlanguages";
 
-export interface LanguageStatisticsContextValue {
-    filteredCommits: CommitActivity[];
+export interface ProjectsContextValue {
+    filteredCommits: CommitActivity[] | undefined;
     selectedLanguages: Set<ProgrammingLanguage>;
-    searchStringTags: Set<string>;
+    searchTags: Set<string>;
     toggleLanguage: (language: ProgrammingLanguage) => void;
-    clearLanguages: () => void;
+    addSearchTags: (text: string) => void;
+    clearTags: () => void;
 }
 
 export const ProjectsContext =
-    createContext<LanguageStatisticsContextValue | null>(null);
+    createContext<ProjectsContextValue | null>(null);

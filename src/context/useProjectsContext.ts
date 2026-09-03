@@ -1,8 +1,8 @@
 import { useContext } from "react";
-import type {LanguageStatisticsContextValue} from "./ProjectsContext";
+import type {ProjectsContextValue} from "./ProjectsContext";
 import { ProjectsContext } from "./ProjectsContext";
 
-export function useProjectsContext(): LanguageStatisticsContextValue {
+export function useProjectsContext(): ProjectsContextValue {
     const context = useContext(ProjectsContext);
 
     if (!context) {
