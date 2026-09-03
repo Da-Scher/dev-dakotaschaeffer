@@ -1,20 +1,49 @@
 import React from "react";
+import {useProjectsContext} from "../context/useProjectsContext";
+import type {ProgrammingLanguage} from "../types/programlanguages";
 
 function ProjectsSearch(): React.JSX.Element {
-    const [searchTags, setSearchTags] = React.useState<string[]>(["test"]);
+    const {searchTags, selectedLanguages, addSearchTags, toggleLanguage} = useProjectsContext();
+    const tags: (ProgrammingLanguage | string)[] = [...selectedLanguages, ...searchTags];
     return (
         <form
             role={"search"}
-            onSubmit={() => {}}
+            onSubmit={(event) => {
+                event?.preventDefault()
+                const formData = new FormData(event.currentTarget);
+                const newTag = formData.get("tag-input")?.toString();
+                if (newTag !== undefined) {
+                    switch (newTag) {
+                        case "C":
+                        case "C++":
+                        case "Haskell":
+                        case "HTML/CSS":
+                        case "GDScript":
+                        case "Java":
+                        case "JavaScript":
+                        case "Lua":
+                        case "OCamel":
+                        case "Python":
+                        case "Shell":
+                        case "TypeScript":
+                        case "Yaml":
+                            toggleLanguage(newTag);
+                            break;
+                        default:
+                            addSearchTags(newTag);
+                            break;
+                    }
+                }
+            }}
         >
             <label
                 htmlFor={"projects-search"}
             >
                 {
-                    searchTags.length > 0
-                    ? searchTags.map((tag) => (
+                    tags.length > 0
+                    ? tags.map((tag: ProgrammingLanguage | string, index: number) => (
                         <span
-                            key={tag}
+                            key={`tag-${index < selectedLanguages.size ? "language" : "string"}-${tag}`}
                         >
                             {tag}
                         </span>
@@ -26,7 +55,7 @@ function ProjectsSearch(): React.JSX.Element {
                 type={"search"}
                 id={"projects-search"}
                 name={"tag-input"}
-                value={""}
+                defaultValue={""}
                 onChange={() => {}}
                 placeholder={"Tag..."}
             />
