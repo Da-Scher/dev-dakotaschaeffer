@@ -3,7 +3,7 @@ import { Bar } from 'react-chartjs-2';
 import {Chart, BarController, BarElement} from 'chart.js/auto';
 import type {ChartData, ChartOptions} from 'chart.js/auto';
 import './HourlyGraph.css';
-import {useLanguageStatistics} from "./useLanguageStatistics";
+import {useProjectsContext} from "../../context/useProjectsContext";
 import type {CommitActivity} from "../../types/commit";
 
 Chart.register(BarController, BarElement);
@@ -41,7 +41,7 @@ function countActivityByHour(activities: CommitActivity[]): number[] {
 function HourlyGraph(): React.JSX.Element {
     const {
         filteredCommits
-    } = useLanguageStatistics();
+    } = useProjectsContext();
     const activityByHour = React.useMemo(() => countActivityByHour(filteredCommits), [filteredCommits]);
 
     const data: ChartData<"bar", number[], string> = {

@@ -6,7 +6,7 @@ import type {
 } from "../../types/programlanguages";
 
 import "./LanguagePieChart.css";
-import {useLanguageStatistics} from "./useLanguageStatistics";
+import {useProjectsContext} from "../../context/useProjectsContext";
 import type {CommitActivity} from "../../types/commit";
 
 interface LanguageSlice {
@@ -78,7 +78,7 @@ function LanguagePieChart(): React.JSX.Element {
         filteredCommits,
         selectedLanguages,
         toggleLanguage,
-    } = useLanguageStatistics();
+    } = useProjectsContext();
 
     const languageStats: NormalizedLanguageStats = React.useMemo(
         (): NormalizedLanguageStats => calculateLanguageStats(filteredCommits),

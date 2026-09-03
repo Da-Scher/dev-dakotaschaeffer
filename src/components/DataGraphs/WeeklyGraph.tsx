@@ -3,7 +3,7 @@ import { Bar } from 'react-chartjs-2';
 import type {ChartData, ChartOptions} from 'chart.js/auto';
 import './WeeklyGraph.css';
 import type {CommitActivity} from "../../types/commit";
-import {useLanguageStatistics} from "./useLanguageStatistics";
+import {useProjectsContext} from "../../context/useProjectsContext";
 
 const WEEK_LABELS: string[] = Array.from(
     {length: 7},
@@ -29,7 +29,7 @@ function countActivityByDayOfWeek(activities: CommitActivity[]): number[] {
 }
 
 function WeeklyGraph(): React.JSX.Element {
-    const { filteredCommits } = useLanguageStatistics();
+    const { filteredCommits } = useProjectsContext();
     const weeklyGraphData: number[] = useMemo((): number[] => countActivityByDayOfWeek(filteredCommits), [filteredCommits]);
 
     const data: ChartData<"bar", number[], string> = {

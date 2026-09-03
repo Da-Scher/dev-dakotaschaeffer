@@ -1,14 +1,14 @@
 import React from "react";
-import type { ProgrammingLanguage } from "../../types/programlanguages";
-import type { CommitActivity } from "../../types/commit";
-import { LanguageStatisticsContext } from "./LanguageStatisticsContext";
+import type { ProgrammingLanguage } from "../types/programlanguages";
+import type { CommitActivity } from "../types/commit";
+import { ProjectsContext } from "./ProjectsContext";
 
 interface LanguageStatisticsProviderProps {
     commits: CommitActivity[];
     children: React.ReactNode;
 }
 
-export function LanguageStatisticsProvider(props: LanguageStatisticsProviderProps) {
+export function ProjectsProvider(props: LanguageStatisticsProviderProps) {
     const {commits, children} = props;
     const [selectedLanguages, setSelectedLanguages] = React.useState<Set<ProgrammingLanguage>>(() => new Set());
 
@@ -55,8 +55,8 @@ export function LanguageStatisticsProvider(props: LanguageStatisticsProviderProp
     );
 
     return (
-        <LanguageStatisticsContext.Provider value={value}>
+        <ProjectsContext.Provider value={value}>
             {children}
-        </LanguageStatisticsContext.Provider>
+        </ProjectsContext.Provider>
     )
 }
