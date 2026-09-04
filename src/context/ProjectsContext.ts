@@ -8,6 +8,7 @@ export interface ProjectsContextValue {
     searchTags: Set<string>;
     toggleLanguage: (language: ProgrammingLanguage) => void;
     addSearchTags: (text: string) => void;
+    removeSearchTags: (text: string) => void;
     clearTags: () => void;
 }
 

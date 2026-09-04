@@ -13,6 +13,16 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
     const [selectedLanguages, setSelectedLanguages] = React.useState<Set<ProgrammingLanguage>>(() => new Set());
     const [searchTags, setSearchTags] = React.useState<Set<string>>(() => new Set());
 
+    function removeSearchTags(tag: string): void {
+        setSearchTags((prevTags: Set<string>) => {
+            const next = new Set(prevTags);
+            if(next.has(tag)) {
+                next.delete(tag);
+            }
+            return next;
+        });
+    }
+
     function addSearchTags(text: string) {
         setSearchTags((prevTags: Set<string>) => {
             const next = new Set(prevTags);
@@ -89,6 +99,7 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
             searchTags,
             toggleLanguage,
             addSearchTags,
+            removeSearchTags,
             clearTags,
         }), [commits, filteredCommits, selectedLanguages, searchTags]
     );
