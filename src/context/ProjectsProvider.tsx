@@ -1,7 +1,9 @@
 import React from "react";
-import type { ProgrammingLanguage } from "../types/programlanguages";
+//import type { ProgrammingLanguage } from "../types/programlanguages";
 import type { CommitActivity } from "../types/commit";
 import { ProjectsContext } from "./ProjectsContext";
+import type {LanguageSlice} from "../components/DataGraphs/LanguagePieChart";
+import type {ProgrammingLanguage} from "../types/programlanguages";
 
 interface ProjectsProviderProps {
     commits: CommitActivity[];
@@ -10,8 +12,9 @@ interface ProjectsProviderProps {
 
 export function ProjectsProvider(props: ProjectsProviderProps) {
     const {commits, children} = props;
-    const [selectedLanguages, setSelectedLanguages] = React.useState<Set<ProgrammingLanguage>>(() => new Set());
+    const [selectedLanguages, setSelectedLanguages] = React.useState<Set<LanguageSlice>>(() => new Set());
     const [searchTags, setSearchTags] = React.useState<Set<string>>(() => new Set());
+    const [eventPieChartToggle, setEventPieChartToggle] = React.useState<string>("");
 
     function removeSearchTags(tag: string): void {
         setSearchTags((prevTags: Set<string>) => {
@@ -32,15 +35,34 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
             return next;
         })
     }
-    function toggleLanguage(language: ProgrammingLanguage) {
-        setSelectedLanguages((previous) => {
+    function toggleSlice(language: LanguageSlice | string) {
+        setSelectedLanguages((previous: Set<LanguageSlice>): Set<LanguageSlice> => {
             const next = new Set(previous);
+            const slices: LanguageSlice[] = [...previous.values()];
+            const languages: ProgrammingLanguage[] = slices.map((slice) => (slice.language as ProgrammingLanguage))
 
-            if (next.has(language)) {
-                next.delete(language);
+            if (typeof language !== "string" && languages.includes(language.language as ProgrammingLanguage)) {
+                for (const slice of next)
+                    if (slice.language === language.language) {
+                        next.delete(slice);
+                        setEventPieChartToggle("");
+                    }
             }
-            else {
+            else if(typeof language !== "string" && !languages.includes(language.language as ProgrammingLanguage)) {
                 next.add(language);
+            }
+            else if(typeof language === "string" && languages.includes(language as ProgrammingLanguage)) {
+                for (const slice of next)
+                    if (slice.language === language) {
+                        next.delete(slice);
+                        setEventPieChartToggle("");
+                    }
+            }
+            else if(typeof language === "string" && !languages.includes(language as ProgrammingLanguage)) {
+                console.log("attempting to call from pie-chart and try again.")
+                setEventPieChartToggle(language)
+                console.log(eventPieChartToggle)
+                return previous;
             }
             return next;
         });
@@ -68,7 +90,7 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
             return commits.filter((commit) =>
                 [...selectedLanguages].every((language) => {
                     if (commit.languageStats) {
-                        return language in commit.languageStats.stats;
+                        return language.language in commit.languageStats.stats;
                     }
                     return false;
                 })
@@ -78,7 +100,7 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
             return commits.filter((commit) =>
                 [...selectedLanguages].every((language) => {
                     if (commit.languageStats) {
-                        return language in commit.languageStats.stats;
+                        return language.language in commit.languageStats.stats;
                     }
                     return false;
                 })
@@ -97,11 +119,12 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
             filteredCommits,
             selectedLanguages,
             searchTags,
-            toggleLanguage,
+            toggleSlice,
             addSearchTags,
             removeSearchTags,
             clearTags,
-        }), [commits, filteredCommits, selectedLanguages, searchTags]
+            eventPieChartToggle,
+        }), [commits, filteredCommits, selectedLanguages, searchTags, eventPieChartToggle]
     );
 
     return (

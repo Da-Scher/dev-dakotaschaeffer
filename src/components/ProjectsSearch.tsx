@@ -1,10 +1,10 @@
 import React from "react";
 import {useProjectsContext} from "../context/useProjectsContext";
-import type {ProgrammingLanguage} from "../types/programlanguages";
+import type {LanguageSlice} from "./DataGraphs/LanguagePieChart";
 
 function ProjectsSearch(): React.JSX.Element {
-    const {searchTags, selectedLanguages, addSearchTags, removeSearchTags, toggleLanguage} = useProjectsContext();
-    const tags: (string)[] = [...selectedLanguages, ...searchTags];
+    const {searchTags, selectedLanguages, addSearchTags, removeSearchTags, toggleSlice} = useProjectsContext();
+    const tags: (string | LanguageSlice)[] = [...selectedLanguages, ...searchTags];
     function tagIsLanguage(tag: string): boolean {
         const langList: string[] = [ "C", "C++", "Haskell", "HTML/CSS", "GDScript", "Java", "JavaScript", "Lua", "OCamel", "Python", "Shell", "TypeScript", "Yaml",];
         console.log(`"langList.includes("${tag}") === ${langList.includes(tag)}"`);
@@ -26,7 +26,10 @@ function ProjectsSearch(): React.JSX.Element {
                     const formData = new FormData(event.currentTarget);
                     const newTag = formData.get("tag-input")?.toString();
                     if (newTag) {
-                        if (tagIsLanguage(newTag)) toggleLanguage(newTag as ProgrammingLanguage);
+                        if (tagIsLanguage(newTag)) {
+                            console.log(newTag + " is a language.");
+                            toggleSlice(newTag);
+                        }
                         else addSearchTags(newTag);
                     }
                 }}
@@ -77,40 +80,46 @@ function ProjectsSearch(): React.JSX.Element {
             >
                 {
                     tags.length > 0 && tags.map((tag) => {
-                        if (tagIsLanguage(tag)) {
-                            return (
-                                <span
-                                    key={`tag-language-${tag}`}
-                                    className={[
-                                        "bg-slate-600 text-slate-200",
-                                        "border border-slate-400 rounded-md px-3 py-2",
-                                        "flex items-center"
-                                    ].join(" ")}
-                                    onClick={()=> toggleLanguage(tag as ProgrammingLanguage)}
-                                >
-                                    <div className={"mr-1 w-3 h-3 border border-transparent bg-red-950 rounded-4xl h-1"}/> {tag}
+                        if (tag) {
+                            if (typeof tag !== "string") {
+                                console.log("tag is slice: tag.color: " + tag.color);
+                                return (
+                                    <span
+                                        key={`tag-language-${tag}`}
+                                        className={[
+                                            "bg-slate-600 text-slate-200",
+                                            "border border-slate-400 rounded-md px-3 py-2",
+                                            "flex items-center"
+                                        ].join(" ")}
+                                        onClick={() => toggleSlice(tag as LanguageSlice)}
+                                    >
+                                    <div
+                                        className={`mr-1 w-3 h-3 border border-transparent rounded-4xl`}
+                                        style={{backgroundColor: `${tag.color ? tag.color : "bg-slate-300"}`}}
+                                    />
+
+                                        {tag.language}
                                 </span>
 
-                            );
-                        }
-                        else {
-                            return (
-                                <span
-                                    key={`tag-search-${tag}`}
-                                    className={[
-                                        "bg-slate-600 text-slate-200",
-                                        "border border-slate-400 rounded-md px-3 py-2",
-                                        "flex items-center"
-                                    ].join(" ")}
-                                    onClick={() => removeSearchTags(tag)}
-                                >
+                                );
+                            } else {
+                                return (
+                                    <span
+                                        key={`tag-search-${tag}`}
+                                        className={[
+                                            "bg-slate-600 text-slate-200",
+                                            "border border-slate-400 rounded-md px-3 py-2",
+                                            "flex items-center"
+                                        ].join(" ")}
+                                        onClick={() => removeSearchTags(tag)}
+                                    >
                                     {tag}
                                 </span>
-                            );
+                                );
+                            }
                         }
                     })
                 }
-
             </section>
         </section>
     )
