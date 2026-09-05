@@ -6,10 +6,10 @@ import type {
 } from "../../types/programlanguages";
 
 import "./LanguagePieChart.css";
-import {useLanguageStatistics} from "./useLanguageStatistics";
+import {useProjectsContext} from "../../context/useProjectsContext";
 import type {CommitActivity} from "../../types/commit";
 
-interface LanguageSlice {
+export interface LanguageSlice {
     language: string;
     stat: LanguageStat;
     percentage: number;
@@ -69,16 +69,22 @@ function calculateLanguageStats(commits: CommitActivity[]): NormalizedLanguageSt
     }
 }
 
+
 function LanguagePieChart(): React.JSX.Element {
-    const [highlightedLanguage, setHighlightedLanguage] = React.useState<Set<string>>(() => new Set());
+    const [highlightedLanguage, setHighlightedLanguage] = React.useState<string | null>(null);
     //const [primaryLanguage, setPrimaryLanguage] = React.useState<string | null>(null);
     const [isAnimating, setIsAnimating] = React.useState<boolean>(true);
 
     const {
         filteredCommits,
         selectedLanguages,
-        toggleLanguage,
-    } = useLanguageStatistics();
+        toggleSlice,
+        eventPieChartToggle,
+    } = useProjectsContext();
+
+    function clickEvent(slice: LanguageSlice) {
+        toggleSlice(slice);
+    }
 
     const languageStats: NormalizedLanguageStats = React.useMemo(
         (): NormalizedLanguageStats => calculateLanguageStats(filteredCommits),
@@ -111,8 +117,9 @@ function LanguagePieChart(): React.JSX.Element {
 
     console.log(colorOrder);
 
+    let currentIndex: number = 0;
     const slices: LanguageSlice[] = Object.entries(languageStats.stats).map(
-        ([language, stat], index) => {
+        ([language, stat]) => {
             console.log(accumulatedPercentage);
             const percentage: number =
                 languageStats.totals.changes === 0
@@ -123,12 +130,36 @@ function LanguagePieChart(): React.JSX.Element {
                 stat,
                 percentage,
                 accumulatedPercentage,
-                color: colorOrder[index]
+                color: ((): string => {
+                    console.log(`selectedLanguages length: ${selectedLanguages.size}`);
+                    for (const slice of selectedLanguages) {
+                        console.log(`slice.color ${slice.color} and colorOrder[currentIndex ${currentIndex} % colorOrder.length ${colorOrder.length}] ${colorOrder[currentIndex % colorOrder.length]}`);
+                        if (slice.color === colorOrder[currentIndex % colorOrder.length ]) {
+                            while(slice.color === colorOrder[currentIndex % colorOrder.length % colorOrder.length])
+                                currentIndex++;
+                        }
+                        if (slice.language === language) {
+                            return slice.color;
+                        }
+                    }
+                    console.log(`currentIndex: ${currentIndex}`);
+                    console.log(colorOrder[currentIndex]);
+                    return colorOrder[currentIndex++ % colorOrder.length];
+                })()
             };
             accumulatedPercentage += percentage;
             return slice;
         }
     );
+
+    React.useEffect(() => {
+        console.log("please god work")
+        for (const slice of slices) {
+            if (slice.language === eventPieChartToggle) {
+                toggleSlice(slice);
+            }
+        }
+    }, [eventPieChartToggle]);
 
 
     return (
@@ -181,18 +212,18 @@ function LanguagePieChart(): React.JSX.Element {
                     </thead>
                     <tbody>
                         {slices.map((slice) => {
-                            const typedLanguage = slice.language as ProgrammingLanguage;
+                            //const typedLanguage = slice.language as ProgrammingLanguage;
 
                             return (
                             <tr
                                 key={slice.language}
                                 tabIndex={0}
-                                aria-pressed={selectedLanguages.has(typedLanguage)}
+                                aria-pressed={selectedLanguages.has(slice)}
                                 onMouseEnter={() => setHighlightedLanguage(slice.language)}
                                 onMouseLeave={() => setHighlightedLanguage(null)}
                                 onFocus={() => setHighlightedLanguage(slice.language)}
                                 onBlur={() => setHighlightedLanguage(null)}
-                                onClick={() => toggleLanguage(typedLanguage)}
+                                onClick={() => clickEvent(slice)}
                             >
                                 <th scope={"row"}>
                                     <span
