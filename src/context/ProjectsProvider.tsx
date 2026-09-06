@@ -1,17 +1,18 @@
 import React from "react";
 //import type { ProgrammingLanguage } from "../types/programlanguages";
-import type { CommitActivity } from "../types/commit";
+import type {CommitActivity, ReadmeData} from "../types/commit";
 import { ProjectsContext } from "./ProjectsContext";
 import type {LanguageSlice} from "../components/DataGraphs/LanguagePieChart";
 import type {ProgrammingLanguage} from "../types/programlanguages";
 
 interface ProjectsProviderProps {
     commits: CommitActivity[];
+    readmes: ReadmeData[];
     children: React.ReactNode;
 }
 
 export function ProjectsProvider(props: ProjectsProviderProps) {
-    const {commits, children} = props;
+    const {commits, children, readmes} = props;
     const [selectedLanguages, setSelectedLanguages] = React.useState<Set<LanguageSlice>>(() => new Set());
     const [searchTags, setSearchTags] = React.useState<Set<string>>(() => new Set());
     const [eventPieChartToggle, setEventPieChartToggle] = React.useState<string>("");
@@ -116,6 +117,7 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
     const value = React.useMemo(
         () => ({
             commits,
+            readmes,
             filteredCommits,
             selectedLanguages,
             searchTags,
@@ -124,7 +126,7 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
             removeSearchTags,
             clearTags,
             eventPieChartToggle,
-        }), [commits, filteredCommits, selectedLanguages, searchTags, eventPieChartToggle]
+        }), [commits, readmes, filteredCommits, selectedLanguages, searchTags, eventPieChartToggle]
     );
 
     return (

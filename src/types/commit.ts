@@ -13,4 +13,10 @@ export interface CommitActivity {
 export interface CommitActivityResponse {
     generatedAt: string;
     commits: CommitActivity[];
+    readmes: ReadmeData[] | undefined;
+}
+
+export interface ReadmeData {
+    content: string;
+    repo: string;
 }

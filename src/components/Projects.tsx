@@ -19,7 +19,7 @@ function Projects ({commitActivityResponse}: ProjectsProps): React.JSX.Element {
     // Project list
 
     return (
-        <ProjectsProvider commits={commitActivityResponse.commits}>
+        <ProjectsProvider commits={commitActivityResponse.commits} readmes={commitActivityResponse.readmes}>
             <ProjectsHeader />
             <ProjectList />
         </ProjectsProvider>
