@@ -52,7 +52,7 @@ describe("getGHReadme", async () => {
         });
         const expected: unknown = {
             repo: "test-github",
-            ...fakeObject,
+            content: Buffer.from(fakeObject.contents, fakeObject.encoding).toString('utf8'),
         };
         const result: ReadmeData | null = await getGHReadme("test-github", "fake token", mockFetch);
         expect(result).not.toBeNull();

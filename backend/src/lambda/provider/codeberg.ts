@@ -107,7 +107,7 @@ export async function getCBReadme(
     const responseJson = await response.json();
     return {
         repo: repo,
-        ...responseJson,
+        content: Buffer.from(responseJson.contents, responseJson.encoding).toString('utf8'),
     }
 }
 

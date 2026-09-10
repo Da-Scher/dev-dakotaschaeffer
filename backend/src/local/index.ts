@@ -427,12 +427,13 @@ export async function fetchGitHubReadmes(ghRepos: string[]): Promise<ReadmeData[
                 headers: GITHUB_HEADERS,
             });
             if (!response.ok) {
+                console.log('response bad')
                 return undefined;
             }
-            const data = await response.json();
+            const data: {content: string, encoding: BufferEncoding} = await response.json();
             return {
                 repo: repo,
-                ...data
+                content: Buffer.from(data.content, data.encoding).toString('utf8'),
             }
         })
     );
@@ -513,10 +514,10 @@ export async function fetchCodebergReadmes(cbRepos: string[]): Promise<ReadmeDat
             if (!response.ok) {
                 return undefined;
             }
-            const data = await response.json();
+            const data: {content: string, encoding: BufferEncoding} = await response.json();
             return {
                 repo: repo,
-                ...data
+                content: Buffer.from(data.content, data.encoding).toString('utf8'),
             }
         })
     );
@@ -533,9 +534,7 @@ export interface NormalizeCommitsOptions {
 
 export interface ReadmeData {
     repo: string;
-    size: number;
-    contents: string;
-    encoding: string;
+    content: string;
 }
 
 export function normalizeGitHubCommit(commit: GitHubCommit): CommitActivity | null {

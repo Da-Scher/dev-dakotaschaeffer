@@ -184,7 +184,7 @@ describe("getCBReadme", async () => {
         });
         const expected: unknown = {
             repo: `test-codeberg`,
-            ...fakeObject,
+            contents: Buffer.from(fakeObject.contents, fakeObject.encoding).toString('utf-8'),
         };
         const result: ReadmeData | null = await getCBReadme("test-codeberg", "fake token", mockFetch);
         expect(result).not.toBeNull();
@@ -192,7 +192,7 @@ describe("getCBReadme", async () => {
     });
     it("returns null if unsuccessful", async () => {
         const fakeObject: unknown = {
-            contents: Buffer.from(`test-codeberg repo created ${new Date().toISOString()}`).toString('base64'),
+            content: Buffer.from(`test-codeberg repo created ${new Date().toISOString()}`).toString('base64'),
             size: Buffer.from(`test-codeberg repo created ${new Date().toISOString()}`).toString('base64').length,
             encoding: 'base64',
         };

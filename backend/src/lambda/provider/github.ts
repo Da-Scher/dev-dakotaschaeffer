@@ -70,7 +70,7 @@ export async function getGHReadme(
     const responseJson = await response.json();
     return {
         repo: repo,
-        ...responseJson,
+        content: Buffer.from(responseJson.contents, responseJson.encoding).toString('utf8'),
     }
 }
 

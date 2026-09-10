@@ -44,7 +44,5 @@ export interface CommitActivityResponse {
 
 export interface ReadmeData {
     repo: string;
-    contents: string;
-    encoding: string;
-    size: number;
+    content: string;
 }
