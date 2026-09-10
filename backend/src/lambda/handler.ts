@@ -1,6 +1,6 @@
-import {getGHCommit, GitHubCommit} from "./provider/github.js";
+import {getGHCommit, getGHReadme, GitHubCommit} from "./provider/github.js";
 
-import {getCBCommit, getCBPatch, getFilesFromPatch} from "./provider/codeberg.js";
+import {getCBCommit, getCBPatch, getCBReadme, getFilesFromPatch} from "./provider/codeberg.js";
 import type {CodebergCommit} from "./provider/codeberg.js";
 
 import {CommitActivity} from "./commit/commit.js"
@@ -8,6 +8,7 @@ import {CommitActivity} from "./commit/commit.js"
 import {loadCommits, saveCommits} from "./s3.js";
 import {S3Client} from "@aws-sdk/client-s3";
 import {getCodebergToken, getGitHubToken} from "./secrets.js";
+import {ReadmeData} from "../local/index.js";
 
 export interface CommitPayload {
     provider: "GitHub" | "Codeberg";
@@ -156,6 +157,34 @@ export async function writeCommitToS3Bucket(s3: S3Client, bucket: string | undef
                     existing.repo === commit.repo &&
                     existing.sha === commit.sha
             );
+        const readmeRecorded: boolean =
+            commitActivityResponse.readmes === undefined
+                ?   false
+                :   commitActivityResponse.readmes.some(
+                        existing => existing.repo === commit.repo
+                    );
+        if (!readmeRecorded) {
+            if (commit.provider === "GitHub") {
+                const newReadmeRecord: ReadmeData | null = await getGHReadme(commit.repo, await getGitHubToken());
+                if (newReadmeRecord) {
+                    if (commitActivityResponse.readmes !== undefined) {
+                        commitActivityResponse.readmes.push(newReadmeRecord);
+                    } else {
+                        commitActivityResponse.readmes = [newReadmeRecord];
+                    }
+                }
+            }
+            else if (commit.provider === "Codeberg") {
+                const newReadmeRecord: ReadmeData | null = await getCBReadme(commit.repo, await getCodebergToken());
+                if (newReadmeRecord) {
+                    if (commitActivityResponse.readmes !== undefined) {
+                        commitActivityResponse.readmes.push(newReadmeRecord);
+                    } else {
+                        commitActivityResponse.readmes = [newReadmeRecord];
+                    }
+                }
+            }
+        }
         if(!alreadyExists) {
             commitActivityResponse.commits.push(commit);
             commitActivityResponse.generatedAt = new Date().toISOString();

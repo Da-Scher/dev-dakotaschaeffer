@@ -1,6 +1,6 @@
 import {GetObjectCommand, GetObjectCommandOutput, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 
-import type {CommitActivity, CommitActivityResponse} from "./commit/commit.js";
+import type {CommitActivity, CommitActivityResponse, ReadmeData} from "./commit/commit.js";
 
 export interface LoadedCommits {
     commitActivityResponse: CommitActivityResponse;
@@ -38,8 +38,12 @@ export async function loadCommits(
         return itemDate - COMMIT_AGE_LIMIT_IN_MS_FROM_MIDNIGHT >= 0;
     });
 
+    // check readmes after filtering commits, if none of the filtered commits contains that repository it should be forgotten.
+    const commitActivityRepos: string[] = Array.from(new Set(filteredParsed.flatMap((commit) => commit.repo ? commit.repo : [])));
+    const currentReadmes: ReadmeData[] = parsed.readmes ? parsed.readmes?.flatMap((readme) => commitActivityRepos.includes(readme.repo) ? readme : []) : [];
+
     return {
-        commitActivityResponse: {generatedAt: parsed.generatedAt, commits: filteredParsed},
+        commitActivityResponse: {generatedAt: parsed.generatedAt, commits: filteredParsed, readmes: currentReadmes},
         etag: response.ETag,
     };
 }

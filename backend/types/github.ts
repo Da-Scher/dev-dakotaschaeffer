@@ -1,12 +1,14 @@
 export interface GitHubRepository {
     name: string;
     html_url: string;
+    url: string;
     pushed_at: string;
 }
 
 export interface GitHubCommit {
     sha: string;
     html_url: string;
+    url: string;
     repo: string;
     commit: {
         message: string;

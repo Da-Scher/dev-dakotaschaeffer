@@ -1,4 +1,5 @@
-import {CommitPayload, CommitFile, freshCommitCheck} from "../handler.js";
+import {CommitFile, CommitPayload, freshCommitCheck} from "../handler.js";
+import type { ReadmeData } from "../commit/commit.js";
 
 export interface GitHubCommit {
     sha: string;
@@ -15,8 +16,6 @@ export interface GitHubCommit {
 
     files?: CommitFile[];
 }
-
-
 
 export async function getGHCommit(
     payload: CommitPayload,
@@ -47,6 +46,32 @@ export async function getGHCommit(
     }
 
     return json;
+}
+
+export async function getGHReadme(
+    repo: string,
+    token: string,
+    fetcher: typeof fetch = fetch
+): Promise<ReadmeData | null> {
+    const response: Response = await fetcher(
+        `https://api.github.com/repos/Da-Scher/${repo}/readme`,
+        {
+            headers: {
+                Accept: "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                Authorization: `Bearer ${token}`,
+            }
+        }
+    );
+    if (!response.ok) {
+        console.error(`Did not fetch GH readme readme from repo ${repo}`);
+        return null;
+    }
+    const responseJson = await response.json();
+    return {
+        repo: repo,
+        ...responseJson,
+    }
 }
 
 export function normalizeGHCommit(commit: GitHubCommit): [string, string, string] {

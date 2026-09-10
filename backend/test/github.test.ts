@@ -1,6 +1,7 @@
 import {describe, expect, it, Mock, vi} from "vitest";
 
-import {getGHCommit, GitHubCommit} from "../src/lambda/provider/github";
+import {getGHCommit, getGHReadme, GitHubCommit} from "../src/lambda/provider/github";
+import {ReadmeData} from "../src/local";
 
 describe("getGHCommit", async () => {
     it("retrieves the requested commit GitHub commit", async () => {
@@ -35,4 +36,41 @@ describe("getGHCommit", async () => {
 
         expect(result).toEqual(fakeCommit);
     })
+})
+
+describe("getGHReadme", async () => {
+    it("returns a ReadmeData object if successful", async () => {
+        const fakeObject: unknown = {
+            contents: Buffer.from(`test-github repo created ${new Date().toISOString()}`).toString('base64'),
+            size: Buffer.from(`test-github repo created ${new Date().toISOString()}`).toString('base64').length,
+            repo: "test-github",
+            encoding: "base64",
+        };
+        const mockFetch: Mock<Procedure> = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => fakeObject,
+        });
+        const expected: unknown = {
+            repo: "test-github",
+            ...fakeObject,
+        };
+        const result: ReadmeData | null = await getGHReadme("test-github", "fake token", mockFetch);
+        expect(result).not.toBeNull();
+        expect(result).toEqual(expected);
+    });
+
+    it("returns null if unsuccessful", async () => {
+        const fakeObject: unknown = {
+            contents: Buffer.from(`test-github repo created ${new Date().toISOString()}`).toString('base64'),
+            size: Buffer.from(`test-github repo created ${new Date().toISOString()}`).toString('base64').length,
+            repo: "test-github",
+            encoding: "base64",
+        };
+        const mockFetch: Mock<Procedure> = vi.fn().mockResolvedValue({
+            ok: false,
+            json: async () => fakeObject,
+        });
+        const result: ReadmeData | null = await getGHReadme("test-github", "fake token", mockFetch);
+        expect(result).toBeNull();
+    });
 })

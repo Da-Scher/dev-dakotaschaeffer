@@ -97,6 +97,7 @@ export interface CodebergCommit {
 export interface CommitActivityResponse {
     generatedAt: string;
     commits: CommitActivity[];
+    readmes: ReadmeData[];
 }
 
 const MS_IN_DAY: number = 24  * 60 * 60 * 1000;
@@ -381,7 +382,7 @@ export async function fetchGitHubCommits(generatedAt: string | null, repoList: s
                 const commitResponse: Response = await fetch(commit.url, {headers: GITHUB_HEADERS});
                 console.log(`${performance.now() - start}: Retrieved commit: ${commit.sha}`);
                 if (!commitResponse.ok) {
-                    throw new Error(`${performance.now() - start}: Failed to fetch GitHub commit details for repo ${repo}: ${commit.sha}`);
+                    throw new Error(`${performance.now() - start}: Failed to fetch GitHub commit details for repo ${repo}: ${commit.sha}. ${response.statusText}`);
                 }
                 const commitData: GitHubCommit = await commitResponse.json();
                 const commitSha: string = commitData.sha;
@@ -416,6 +417,26 @@ export async function fetchGitHubCommits(generatedAt: string | null, repoList: s
             }
         }
         return commitsGitHub;
+}
+
+export async function fetchGitHubReadmes(ghRepos: string[]): Promise<ReadmeData[]> {
+    const allReadmes: (ReadmeData | undefined)[] = await Promise.all(
+        ghRepos.map(async (repo: string): Promise<ReadmeData | undefined> => {
+            const url: string = `https://api.github.com/repos/Da-Scher/${repo}/contents/README.md`;
+            const response: Response = await fetch(url, {
+                headers: GITHUB_HEADERS,
+            });
+            if (!response.ok) {
+                return undefined;
+            }
+            const data = await response.json();
+            return {
+                repo: repo,
+                ...data
+            }
+        })
+    );
+    return allReadmes.flatMap((readme: ReadmeData | undefined): ReadmeData[] => readme === undefined ? [] : [readme]);
 }
 
 export async function fetchCodebergCommits(generatedAt: string | null, cbRepos: string[]): Promise<CodebergCommit[]> {
@@ -482,10 +503,39 @@ export async function fetchCodebergCommits(generatedAt: string | null, cbRepos: 
     return commitsCodeberg;
 }
 
+export async function fetchCodebergReadmes(cbRepos: string[]): Promise<ReadmeData[]> {
+    const allReadmes: (ReadmeData | undefined)[] = await Promise.all(
+        cbRepos.map(async (repo: string): Promise<ReadmeData | undefined> => {
+            const url: string = `https://codeberg.org/api/v1/repos/dascher/${repo}/contents/README.md`;
+            const response: Response = await fetch(url, {
+                headers: CODEBERG_HEADERS,
+            });
+            if (!response.ok) {
+                return undefined;
+            }
+            const data = await response.json();
+            return {
+                repo: repo,
+                ...data
+            }
+        })
+    );
+
+    return allReadmes.flatMap((readme: ReadmeData | undefined): ReadmeData[] => readme === undefined ? [] : [readme])
+}
+
 export interface NormalizeCommitsOptions {
     commitsGitHub?: GitHubCommit[];
     commitsGitLab?: undefined;
     commitsCodeberg?: CodebergCommit[];
+    readmes: ReadmeData[];
+}
+
+export interface ReadmeData {
+    repo: string;
+    size: number;
+    contents: string;
+    encoding: string;
 }
 
 export function normalizeGitHubCommit(commit: GitHubCommit): CommitActivity | null {
@@ -582,7 +632,7 @@ export async function normalizeCodebergCommit(commit: CodebergCommit): Promise<C
     }
 }
 
-export async function normalizeCommits({commitsGitHub = undefined, commitsGitLab = undefined, commitsCodeberg = undefined}: NormalizeCommitsOptions): Promise<CommitActivityResponse> {
+export async function normalizeCommits({commitsGitHub = undefined, commitsGitLab = undefined, commitsCodeberg = undefined, readmes = []}: NormalizeCommitsOptions): Promise<CommitActivityResponse> {
     const caList: CommitActivity[] = [];
     // normalize all GitHub commits
     for (const commit of commitsGitHub? commitsGitHub : []) {
@@ -601,6 +651,7 @@ export async function normalizeCommits({commitsGitHub = undefined, commitsGitLab
     return {
         generatedAt: new Date().toISOString(),
         commits: caList,
+        readmes: readmes,
     }
 }
 
@@ -618,6 +669,7 @@ export async function getNormalizedData(): Promise<boolean> {
                 commitActivityResponse: {
                     generatedAt: "",
                     commits: [],
+                    readmes: [],
                 },
                 generatedAt: null,
             };
@@ -630,6 +682,7 @@ export async function getNormalizedData(): Promise<boolean> {
                     commitActivityResponse: {
                         generatedAt: fcJson.generatedAt,
                         commits: fcJson.commits,
+                        readmes: fcJson.readmes,
                     },
                     generatedAt: fcJson.generatedAt,
                 };
@@ -639,6 +692,7 @@ export async function getNormalizedData(): Promise<boolean> {
                     commitActivityResponse: {
                         generatedAt: "",
                         commits: [],
+                        readmes: [],
                     },
                     generatedAt: null,
                 };
@@ -690,12 +744,15 @@ export async function getNormalizedData(): Promise<boolean> {
     }
     const timerCBCommits: DOMHighResTimeStamp = performance.now() - timerStart;
     console.log(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Duration to get Codeberg commits: ${(timerCBCommits - timerCBRepos).toFixed(2)} ms`);
-    const normalizedCommits: CommitActivityResponse = await normalizeCommits({commitsGitHub: ghCommits, commitsCodeberg: cbCommits});
+    const readmes: ReadmeData[] = [...await fetchGitHubReadmes(ghRepos), ...await fetchCodebergReadmes(cbRepos)];
+
+    const normalizedCommits: CommitActivityResponse = await normalizeCommits({commitsGitHub: ghCommits, commitsCodeberg: cbCommits, readmes: readmes});
     const timerNormalizedCommits: DOMHighResTimeStamp = performance.now() - timerStart;
     console.log(`getNormalizedData() :: ${performance.now() - timerStart} ms :: Duration to have normalized commits: ${timerNormalizedCommits.toFixed(2)} ms`);
     if (commitActivityResponse.generatedAt === "") {
         commitActivityResponse.generatedAt = normalizedCommits.generatedAt;
         commitActivityResponse.commits = normalizedCommits.commits;
+        commitActivityResponse.readmes = readmes;
         await fs.promises.writeFile("../public/data/commits.json", JSON.stringify(commitActivityResponse, null, 2), "utf8");
     }
     else {

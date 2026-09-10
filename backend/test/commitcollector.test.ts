@@ -1,4 +1,4 @@
-import {expect, afterEach, describe, vi, it} from "vitest";
+import {expect, afterEach, beforeEach, describe, vi, it} from "vitest";
 import {vol} from "memfs";
 import {
     commitsJsonExists,
@@ -6,14 +6,22 @@ import {
     fetchGitHubCommits,
     normalizeCommits,
     repoFresh,
-    commitFresh
-} from "../src";
-import {CommitActivityResponse} from "../../src/types/commit";
-import {fakerCommitList, fakerRepoList, makeGitHubCommit, makeGitHubRepository} from "./faker/fakerConfig";
+    commitFresh, ReadmeData
+} from "../src/local";
+import {CommitActivityResponse} from "../src/local";
+import {
+    fakerCommitList,
+    fakerRepoList,
+    makeGitHubCommit,
+    makeGitHubReadme,
+    makeGitHubRepository
+} from "./faker/fakerConfig";
 import {GitHubCommit} from "../types/github";
 
 vi.mock("node:fs")
 vi.mock("node:fs/promises")
+
+
 
 const MS_IN_DAY: number = 24 * 60 * 60 * 1000;
 const MAX_AGE_MS: number = 364 * MS_IN_DAY;
@@ -35,6 +43,12 @@ function mockFetchJson(data: unknown, status: number = 200): void {
     )
 }
 
+const fetchMock = vi.fn<typeof fetch>();
+
+beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+});
+
 afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -53,7 +67,7 @@ it(`returns the mocked fixture`, async () => {
 describe(`commitsJsonExists`, () => {
     it(`should return true if commits.json exists`, async () => {
         vol.fromJSON({
-            './../../public/data/commits.json': "{}"
+            './../public/data/commits.json': "{}"
         })
         const result = await commitsJsonExists();
         expect(result).toBe(true);
@@ -69,12 +83,39 @@ describe(`commitsJsonExists`, () => {
 })
 describe(`fetchGitHubCommits`, () => {
     it(`should return a list of valid commits`, async () => {
-        mockFetchJson(fakerCommitList())
-        const commitsList: GitHubCommit[] =
-            await fetchGitHubCommits(
-                new Date(2025, 6, 1, 0, 0, 0, 0).toISOString(),
-                ["blah"]
-            );
+        const fakeCommits: GitHubCommit[] = fakerCommitList();
+        vi.mocked(fetch).mockImplementation(async (input) => {
+            const url: string = input.toString();
+
+            if (url === "https://api.github.com/repos/Da-Scher/blah/commits") {
+                return new Response(JSON.stringify(fakeCommits), {
+                    status: 200,
+                    headers: {
+                        "content-type": "application/json"
+                    }
+                });
+            }
+
+            const commit: GitHubCommit | undefined = fakeCommits.find((item) => item.url === url);
+
+            if (commit) {
+                return new Response(JSON.stringify(commit), {
+                    status: 200,
+                    headers: {
+                        "content-type": "application/json",
+                    }
+                });
+            }
+            return new Response(null, {
+                status: 404,
+                statusText: "Not Found"
+            });
+        });
+
+        const commitsList = await fetchGitHubCommits(
+            new Date(2025, 6, 1).toISOString(),
+            ["blah"]
+        )
 
         for (const commit of commitsList) {
 
@@ -354,33 +395,50 @@ describe(`fetchGitHubRepos`, () => {
 
 describe(`normalizeGitHubCommits`, async () => {
     it(`creates a CommitActivityResponse`, async () => {
+        function jsonResponse(data: unknown): Response {
+            return new Response(JSON.stringify(data), {
+                status: 200,
+                headers: {
+                    "content-type": "application/json",
+                }
+            });
+        }
         vi.useFakeTimers();
         vi.setSystemTime(new Date(2026, 0, 1, 0, 0, 0, 0));
-        const now: string = new Date().toISOString();
 
         try {
-            mockFetchJson([makeGitHubRepository({age: "fresh", now: new Date(), overrides: {name: "exampleName"}})])
+            const now: string = new Date().toISOString();
 
-            const repoList: string[] = await fetchGitHubRepos(
-                new Date(2025, 0, 1, 0, 0, 0, 0).toISOString(),
-            );
-            mockFetchJson([makeGitHubCommit({
+            const repository = makeGitHubRepository({
                 age: "fresh",
                 now: new Date(),
-                repo: makeGitHubRepository({age: "fresh", now: new Date(), overrides: {name: "exampleName"}})
-            })])
-
-            const commitList: GitHubCommit[] =
-                await fetchGitHubCommits(
-                    new Date(2025, 0, 1, 0, 0, 0, 0).toISOString(),
-                    repoList
+                overrides: { name: "exampleName" },
+            });
+            const commit = makeGitHubCommit({
+                age: "fresh",
+                now: new Date(),
+                repo: repository,
+            });
+            const readme: ReadmeData = makeGitHubReadme({
+                repo: repository.name,
+            })
+            const fetchMock = vi.fn<typeof fetch>();
+            fetchMock
+                // fetchGitHubRepos()
+                .mockResolvedValueOnce(jsonResponse([repository]))
+                // fetchGitHubCommits(): list endpoint
+                .mockResolvedValueOnce(jsonResponse([commit]))
+                // fetchGitHubCommits(): commit detail endpoint
+                .mockResolvedValueOnce(jsonResponse(commit));
+            vi.stubGlobal("fetch", fetchMock);
+            const repoList = await fetchGitHubRepos(
+                new Date(2025, 0, 1).toISOString(),
             );
-            expect(
-                commitList,
-                `commitList is null.`)
-                .not.toBe(null);
-            const normalizedCommitList: CommitActivityResponse = normalizeCommits(commitList);
-
+            const commitList = await fetchGitHubCommits(
+                new Date(2025, 0, 1).toISOString(),
+                repoList,
+            );
+            const normalizedCommitList: CommitActivityResponse = await normalizeCommits({ commitsGitHub: commitList, readmes: [readme] });
             vi.useRealTimers();
             expect(
                 normalizedCommitList,
@@ -398,10 +456,11 @@ describe(`normalizeGitHubCommits`, async () => {
                 normalizedCommitList?.commits[0].repo,
                 `normalizedCommitList.commits[0]'s repo should be exampleName.`)
                 .toBe("exampleName");
-        } catch (e) {
-            console.error(e);
+            expect(
+                normalizedCommitList?.readmes[0])
+                .toBe(readme);
+        } finally {
+            vi.useRealTimers();
         }
-
-        vi.unstubAllGlobals();
     })
 });

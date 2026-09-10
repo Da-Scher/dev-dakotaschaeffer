@@ -1,6 +1,7 @@
 import {faker} from "@faker-js/faker";
 
 import {GitHubCommit, GitHubCommitFile, GitHubRepository} from "../../types/github";
+import {ReadmeData} from "../../src/local";
 
 type FixtureAge = "edge" | "fresh" | "stale";
 
@@ -69,6 +70,7 @@ export function makeGitHubRepository({
     return {
         name: repoName,
         html_url: `https://github.com/${owner}/${repoName}`,
+        url: `https://api.github.com/repos/${owner}/${repoName}`,
         pushed_at: fakeDateByAge(age, now).toISOString(),
         ...overrides,
     };
@@ -110,6 +112,28 @@ export function makeGitHubCommitFile({
     }
 }
 
+export interface ReadmeFixtureOptions {
+    repo?: string;
+    encoding?: string;
+    contents?: string;
+    size?: number;
+}
+
+export function makeGitHubReadme(
+    {
+        repo = "test-github",
+        encoding = "base64",
+        contents = Buffer.from(`test-github repo made on ${new Date().toISOString()}`).toString(),
+        size = Buffer.from(`test-github repo made on ${new Date().toISOString()}`).toString().length,
+    }: ReadmeFixtureOptions): ReadmeData {
+    return {
+        repo,
+        encoding,
+        contents,
+        size,
+    }
+}
+
 export function makeGitHubCommit({
     age = "fresh",
     now = new Date(),
@@ -127,6 +151,8 @@ export function makeGitHubCommit({
 
     return {
         sha: sha,
+        repo: repo.name,
+        url: `${repo.url}/commit/${sha}`,
         html_url:
             `${repo.html_url}/commit/${sha}`,
         commit: {
