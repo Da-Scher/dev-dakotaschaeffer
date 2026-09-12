@@ -1,0 +1,30 @@
+/* Defaults */
+.hourly-graph-container {
+    grid-area: hourly;
+}
+
+/* Mobile */
+.hourly-graph-container {
+    width: 100%;
+}
+
+.activity-chart {
+    padding: 1rem;
+    color: #f3f4f6;
+    background-color: #111827;
+    border: 1px solid #374151;
+    border-radius: 0.75rem;
+}
+
+.activity-chart__canvas {
+    position: relative;
+    width: 100%;
+    height: 20rem;
+}
+
+/* Desktop */
+@media (min-width: 769px) {
+    .hourly-graph-container {
+        width: 100%;
+    }
+}

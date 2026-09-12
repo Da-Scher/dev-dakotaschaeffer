@@ -1,3 +1,5 @@
+import type {NormalizedLanguageStats} from "./programlanguages";
+
 export interface CommitActivity {
     provider: "github" | "gitlab" | "codeberg";
     repo: string;
@@ -5,9 +7,16 @@ export interface CommitActivity {
     message: string;
     authoredAt: string;
     url: string;
+    languageStats?: NormalizedLanguageStats;
 }
 
 export interface CommitActivityResponse {
     generatedAt: string;
     commits: CommitActivity[];
+    readmes: ReadmeData[] | undefined;
+}
+
+export interface ReadmeData {
+    content: string;
+    repo: string;
 }
