@@ -1,4 +1,5 @@
 import {CommitPayload, CommitFile, freshCommitCheck} from "../handler.js";
+import {ReadmeData} from "../commit/commit.js";
 
 export interface CodebergCommit {
     sha: string;
@@ -85,6 +86,29 @@ export function getFilesFromPatch(patch: string | null): CommitFile[] | undefine
     }
     if(currentFile) files.push(currentFile);
     return files;
+}
+
+export async function getCBReadme(
+    repo: string,
+    token: string,
+    fetcher: typeof fetch = fetch
+): Promise<ReadmeData | null> {
+    const response: Response = await fetcher(
+        `https://codeberg.org/api/v1/repos/dascher/${repo}/contents/README.md`, {
+        headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+        }
+    });
+    if (!response.ok) {
+        console.error(`Did not fetch GH readme readme from repo ${repo}`);
+        return null;
+    }
+    const responseJson = await response.json();
+    return {
+        repo: repo,
+        content: Buffer.from(responseJson.contents, responseJson.encoding).toString('utf8'),
+    }
 }
 
 export function normalizeCBCommit(commit: CodebergCommit): [string, string, string] {

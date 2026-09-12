@@ -85,7 +85,21 @@ describe("S3Client tests", async () => {
                         },
                     }
                 }
-            ]
+            ],
+            readmes: [
+                {
+                    repo: "test-codeberg",
+                    size: Buffer.from("test-codeberg repo made on 9/8/26").toString().length,
+                    content: Buffer.from("test-codeberg repo made on 9/8/26").toString("base64"),
+                    encoding: "Base64",
+                },
+                {
+                    repo: "test-github",
+                    size: Buffer.from("test-github repo made on 9/8/26").toString().length,
+                    content: Buffer.from("test-github repo made on 9/8/26").toString("base64"),
+                    encoding: "Base64",
+                }
+            ],
         };
         const send: Mock<Procedure> = vi.fn().mockResolvedValue({
             Body: {
@@ -107,6 +121,38 @@ describe("S3Client tests", async () => {
         expect(send).toHaveBeenCalledOnce();
     });
 
+    it("creates an empty ReadmeData list when readmes is undefined", async () =>{
+        const fakeDate: Date = new Date("2026-08-25T00:00:00Z");
+        vi.useFakeTimers();
+        vi.setSystemTime(fakeDate);
+        const existingCommits: CommitActivityResponse = {
+            generatedAt: "2026-08-25T00:00:00Z",
+            commits: [
+                {
+                    provider: "GitHub",
+                    repo: "test-github",
+                    sha: "abc123",
+                    message: "test commit",
+                    authoredAt: "2020-08-24T00:00:00Z",
+                    url: "https://github.com/...",
+                    languageStats: undefined,
+                },
+            ],
+        }
+        const send: Mock<Procedure> = vi.fn().mockResolvedValue({
+            Body: {
+                transformToString: vi.fn().mockResolvedValue(
+                    JSON.stringify(existingCommits)
+                )
+            },
+            ETag: '"etag-123"',
+        });
+        const mockS3 = {
+            send
+        } as unknown as S3Client;
+        const result: LoadedCommits = await loadCommits(mockS3, "test-bucket", "commits.json");
+        expect(result.commitActivityResponse.readmes).toStrictEqual([]);
+    });
     it("filters out commits that are older than but not equal to 364 days from midnight today", async () => {
         const fakeDate: Date = new Date("2026-08-26T00:00:00Z");
         vi.useFakeTimers();
@@ -189,7 +235,21 @@ describe("S3Client tests", async () => {
                         },
                     }
                 }
-            ]
+            ],
+            readmes: [
+                {
+                    repo: "test-codeberg",
+                    size: Buffer.from("test-codeberg repo made on 9/8/26").toString().length,
+                    content: Buffer.from("test-codeberg repo made on 9/8/26").toString("base64"),
+                    encoding: "Base64",
+                },
+                {
+                    repo: "test-github",
+                    size: Buffer.from("test-github repo made on 9/8/26").toString().length,
+                    content: Buffer.from("test-github repo made on 9/8/26").toString("base64"),
+                    encoding: "Base64",
+                }
+            ],
         };
         const newCommitActivity: CommitActivityResponse =
             {
@@ -218,29 +278,37 @@ describe("S3Client tests", async () => {
                         },
                     },
                     {
-                provider: "GitHub",
-                repo: "test-github",
-                sha: "abc123",
-                message: "test commit",
-                authoredAt: "2025-08-26T12:00:00Z",
-                url: "https://github.com/...",
-                languageStats: {
-                stats: {
-                    "OCamel": {
-                        additions: 100,
-                        deletions: 20,
-                        changes: 120,
+                        provider: "GitHub",
+                        repo: "test-github",
+                        sha: "abc123",
+                        message: "test commit",
+                        authoredAt: "2025-08-26T12:00:00Z",
+                        url: "https://github.com/...",
+                        languageStats: {
+                        stats: {
+                            "OCamel": {
+                                additions: 100,
+                                deletions: 20,
+                                changes: 120,
+                            },
+                        },
+                            totals: {
+                                additions: 100,
+                                deletions: 20,
+                                changes: 120,
+                            },
+                        }
                     },
-                },
-                    totals: {
-                        additions: 100,
-                        deletions: 20,
-                        changes: 120,
+                ],
+                readmes: [
+                    {
+                        repo: "test-github",
+                        size: Buffer.from("test-github repo made on 9/8/26").toString().length,
+                        content: Buffer.from("test-github repo made on 9/8/26").toString("base64"),
+                        encoding: "Base64",
                     },
-                }
-            },
-        ]
-        };
+                ]
+            };
         const send: Mock<Procedure> = vi.fn().mockResolvedValue({
             Body: {
                 transformToString: vi.fn().mockResolvedValue(

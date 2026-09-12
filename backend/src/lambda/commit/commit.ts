@@ -37,6 +37,12 @@ export interface CommitActivity {
 }
 
 export interface CommitActivityResponse {
+    readmes?: ReadmeData[];
     generatedAt: string;
     commits: CommitActivity[];
+}
+
+export interface ReadmeData {
+    repo: string;
+    content: string;
 }

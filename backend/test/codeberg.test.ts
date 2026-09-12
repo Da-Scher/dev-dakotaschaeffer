@@ -1,6 +1,7 @@
 import {describe, expect, it, Mock, vi} from "vitest";
 
-import {getCBCommit, CodebergCommit, getCBPatch, getFilesFromPatch} from "../src/lambda/provider/codeberg";
+import {getCBCommit, CodebergCommit, getCBPatch, getFilesFromPatch, getCBReadme} from "../src/lambda/provider/codeberg";
+import {ReadmeData} from "../src/lambda/commit/commit";
 
 describe("getCBCommit", async () => {
     it("retrieves the requested CodebergCommit commit", async () => {
@@ -168,5 +169,38 @@ describe("getFilesFromPatch", () => {
                 },
             ]
         );
+    });
+});
+describe("getCBReadme", async () => {
+    it("returns a ReadmeData object if successful", async () => {
+        const fakeObject: unknown = {
+            contents: Buffer.from(`test-codeberg repo created ${new Date().toISOString()}`).toString('base64'),
+            size: Buffer.from(`test-codeberg repo created ${new Date().toISOString()}`).toString('base64').length,
+            encoding: 'base64',
+        };
+        const mockFetch: Mock<Procedure> = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => fakeObject,
+        });
+        const expected: unknown = {
+            repo: `test-codeberg`,
+            contents: Buffer.from(fakeObject.contents, fakeObject.encoding).toString('utf-8'),
+        };
+        const result: ReadmeData | null = await getCBReadme("test-codeberg", "fake token", mockFetch);
+        expect(result).not.toBeNull();
+        expect(result).toEqual(expected)
+    });
+    it("returns null if unsuccessful", async () => {
+        const fakeObject: unknown = {
+            content: Buffer.from(`test-codeberg repo created ${new Date().toISOString()}`).toString('base64'),
+            size: Buffer.from(`test-codeberg repo created ${new Date().toISOString()}`).toString('base64').length,
+            encoding: 'base64',
+        };
+        const mockFetch: Mock<Procedure> = vi.fn().mockResolvedValue({
+            ok: false,
+            json: async () => fakeObject,
+        });
+        const result: ReadmeData | null = await getCBReadme("test-codeberg", "fake token", mockFetch);
+        expect(result).toBeNull();
     });
 })
