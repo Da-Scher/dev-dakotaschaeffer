@@ -1,6 +1,5 @@
 import React from "react";
 import "./headerStyle.css";
-import TextBubbleSection from "./TextBubbleSection";
 
 type HeadShotProps = {
     className?: string;
@@ -14,7 +13,6 @@ function HeadShot({className = ""}: HeadShotProps): React.JSX.Element {
                 alt={"Firstname Lastname"}
                 className={className}
             />
-            <TextBubbleSection />
         </div>
     )
 }

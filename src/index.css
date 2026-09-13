@@ -1,0 +1,19 @@
+/* Defaults */
+
+:root {
+    /* Colors */
+    --main-color: #B2C0A3;
+    --main-color-dark: #3A4535;
+    --main-color-darker: #2c3226;
+    --main-color-light: #DFEDCB;
+    --accent-color: #B9B39D;
+    --accent-color-dark: #5F4F38;
+    --accent-color-light: #E0D5C1;
+
+    /* Fonts */
+    --paragraph-font-family: "Roboto Mono", monospace;
+}
+
+body {
+    background-color: var(--main-color-dark);
+}
