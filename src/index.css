@@ -9,6 +9,10 @@
     --accent-color: #B9B39D;
     --accent-color-dark: #5F4F38;
     --accent-color-light: #E0D5C1;
+    --link-color: #0EA5E9;
+    --link-color-dark: #12749C;
+    --link-color-darker: #14536A;
+    --link-color-light: #52BDFF;
 
     /* Fonts */
     --paragraph-font-family: "Roboto Mono", monospace;

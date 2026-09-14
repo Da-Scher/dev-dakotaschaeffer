@@ -1,18 +1,65 @@
 @import "tailwindcss";
 
-.text-bubble {
+.text-bubble, .link-bubble {
     font-family: var(--paragraph-font-family), monospace;
 }
 
 .text-bubble-body {
     background-color: var(--main-color);
     background-image:
-        linear-gradient(var(--main-color), var(--main-color)),
-        linear-gradient(to top right, var(--main-color-darker), var(--main-color-dark), var(--main-color-light), var(--main-color-dark), var(--main-color-darker));
+        linear-gradient(
+                var(--main-color),
+                var(--main-color)
+        ),
+        linear-gradient(
+                to top right,
+                var(--main-color-darker),
+                var(--main-color-dark),
+                var(--main-color-light),
+                var(--main-color-dark),
+                var(--main-color-darker)
+        );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+}
+
+.link-bubble-body {
+    background-color: var(--link-color);
+    background-image:
+        linear-gradient(
+            var(--link-color),
+            var(--link-color)
+        ),
+        linear-gradient(
+            to top right,
+            var(--link-color-darker),
+            var(--link-color-dark),
+            var(--link-color-light),
+            var(--link-color-dark),
+            var(--link-color-darker)
+        );
     background-origin: border-box;
     background-clip: padding-box, border-box;
 }
 
 .text-bubble-tail {
     border-right-color: var(--main-color);
+}
+.link-bubble-tail {
+    border-right-color: var(--link-color);
+}
+
+.text-bubble-section {
+    height: 250px;
+    overflow: hidden;
+    position: relative;
+}
+
+.text-bubble-scroll {
+    display: flex;
+    flex-direction: column;
+}
+
+.text-bubble-scroll:hover {
+    animation-play-state: paused;
 }
