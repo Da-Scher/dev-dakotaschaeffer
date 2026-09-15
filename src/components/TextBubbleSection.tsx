@@ -13,11 +13,15 @@ export interface TextBubbleObject {
 }
 
 const bubblesText: TextBubbleObject[] = [
+    {text: "text 1"},
     {text: "Lorem ipsum dolor sit amet, consectetur massa nunc.", link: "#"},
     {text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut quis dui at diam laoreet ultrices. Sed tristique sollicitudin quam sit amet tempus. Etiam urna lorem."},
     {text: "Lorem ipsum dolor sit amet.", link: "#"},
+    {text: "text 2"},
     {text: "Lorem ipsum dolor sit amet, consectetur Ut quis dui at."},
     {text: "Lorem ipsum dolor sit amet, consectetur sed tristique sollicitudin quam sit amet tempus.", link: "#"},
+    {text: "text 3"},
+    {text: "Last text (text 4)"},
 ] as const;
 
 function TextBubbleSection({headshotGeometry}: TextBubbleSectionProps): React.JSX.Element {
@@ -50,13 +54,15 @@ function TextBubbleSection({headshotGeometry}: TextBubbleSectionProps): React.JS
         for (let i: number = 0; i < bubblesText.length; i++) {
 
             const startPercentage: number = i * percentagePerItem;
-            const pausePercentage: number = startPercentage + 18;
-            const popPercentage: number = pausePercentage + 2;
+            const pausePercentage: number = Math.floor(startPercentage + (percentagePerItem * 0.9));
+            const popPercentage: number = Math.floor(pausePercentage + (percentagePerItem * 0.1));
 
             keyFrameRule += `${pausePercentage}% { transform: translateY(calc(-1 * ${desktop ? 165 * i : 92 * i}px)); }\n`;
             keyFrameRule += `${popPercentage}% { transform: translateY(${popPercentage !== 100 ? `calc(-1 * ${desktop ? 165 * (i + 1) : 92 * (i + 1)}px)` : `-50%`}); }\n`;
 
-
+        }
+        if (!keyFrameRule.includes("100%")) {
+            keyFrameRule += `100% { transform: translateY(-50%); }\n`
         }
         return keyFrameRule + "\n}";
     }, [desktop]);
