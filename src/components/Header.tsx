@@ -4,6 +4,8 @@ import HeadShot from "./HeadShot";
 import HamburgerMenu from "./HamburgerMenu";
 import { useStickyState } from "./useStickyState";
 import "./headerStyle.css";
+import "./../index.css";
+import HeadShotMini from "./HeadShotMini";
 
 type HeaderProps = PropsWithChildren<{
     stickyTop?: number;
@@ -11,10 +13,8 @@ type HeaderProps = PropsWithChildren<{
 
 const navbarItems = [
     {label: "Resume", href: "#"},
-    {label: "Email", href: "#"},
     {label: "GitHub", href: "#"},
-    {label: "GitLab", href: "#"},
-    {label: "LinkedIn", href: "#"},
+    {label: "Codeberg", href: "#"},
 ] as const;
 
 function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
@@ -22,8 +22,14 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
 
     return (
         <>
-            <HeadShot className={"h-64 w-64 rounded-2xl"}/>
+            <HeadShot className={
+                [
+                    "ml-4 mt-9 mb-11 h-48 w-48 rounded-full border-2 border-[#999999]",
+                    "md:ml-11"
+                ].join(" ")
+            }/>
 
+            <div className={"border-b-2"} />
             <div ref={sentinelRef}
                   aria-hidden={true}
                   className={"pointer-events-none h-px w-full -mb-px"}
@@ -40,14 +46,14 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
             data-sticky={isSticky}
             >
                 <nav className={[
-                    "grid grid-row-[1fr] overflow-hidden",
+                    "grid grid-row-[1fr] overflow-hidden w-full",
                     "border-y border-zinc-700",
                     "tracking-[0.5em] border-b-2 transition-[grid-template-rows,opacity]",
                     "duration-300 ease-in-out motion-reduce:transition-none"]
                     .join(" ")}
                 >
 
-                    <ul className={"flex w-full items-center justify-center py-3"}>
+                    <ul className={"flex w-full items-center justify-center py-3 font-mono"}>
                         <li className={[
                             "flex size-10 origin-center mr-1 ml-1",
                             "transition-[opacity,scale] duration-300 ease-out",
@@ -57,7 +63,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                                 : "pointer-events-none scale-75 opacity-0"
                         ].join(" ")}
                         >
-                            <HeadShot className={"size-11 rounded-full object-cover"} />
+                            <HeadShotMini className={"size-11 rounded-full object-cover"} />
                         </li>
                         {navbarItems.map((link, index) => (
                             <li
