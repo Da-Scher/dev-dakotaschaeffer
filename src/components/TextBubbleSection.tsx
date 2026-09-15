@@ -12,9 +12,6 @@ export interface TextBubbleObject {
     link?: string;
 }
 
-const SIZE_OF_LINE: 15 | 24 | 32 = window.screen.width < 768 ? 15 : window.screen.width >= 768 && window.screen.width < 1280 ? 24 : 32;
-const NUMBER_OF_LINES: 3 | 5 = window.screen.width < 1280 ? 3 : 5;
-
 const bubblesText: TextBubbleObject[] = [
     {text: "Lorem ipsum dolor sit amet, consectetur massa nunc.", link: "#"},
     {text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut quis dui at diam laoreet ultrices. Sed tristique sollicitudin quam sit amet tempus. Etiam urna lorem."},
@@ -28,9 +25,13 @@ function TextBubbleSection({headshotGeometry}: TextBubbleSectionProps): React.JS
 
     const scrollRef: Ref<HTMLDivElement> = useRef(null);
     const [desktop, setDesktop] = useState<boolean>(window.screen.width >= 1024);
+    const [linesPerBubble, setLinesPerBubble] = useState(window.screen.width >= 1024 ? 5 : 3);
+    const [charactersPerLine, setCharactersPerLine] = useState(window.screen.width >= 1024 ? 32 : window.screen.width >= 768 ? 24 : 15);
 
     const updateDesktop: () => void = useCallback((): void =>{
         setDesktop(window.screen.width >= 1024);
+        setLinesPerBubble(window.screen.width >= 1024 ? 5 : 3);
+        setCharactersPerLine(window.screen.width >= 1024 ? 32 : window.screen.width >= 768 ? 24 : 15);
     }, [setDesktop]);
 
     useLayoutEffect(() => {
@@ -70,8 +71,8 @@ function TextBubbleSection({headshotGeometry}: TextBubbleSectionProps): React.JS
                         items.map((item: TextBubbleObject, index: number): React.JSX.Element => (
                             <HeadShotTextBubble
                                 key={index}
-                                text={item.text} link={item.link} lineSize={SIZE_OF_LINE}
-                                lines={NUMBER_OF_LINES}
+                                text={item.text} link={item.link} lineSize={charactersPerLine}
+                                lines={linesPerBubble}
                                 headshotCircle={headshotGeometry ? headshotGeometry : null}
                             />
                         ))
