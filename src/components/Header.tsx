@@ -22,7 +22,12 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
 
     return (
         <>
-            <HeadShot className={"ml-4 mt-[36px] mb-[44px] h-48 w-48 rounded-full border-2 border-[#999999]"}/>
+            <HeadShot className={
+                [
+                    "ml-4 mt-9 mb-11 h-48 w-48 rounded-full border-2 border-[#999999]",
+                    "md:ml-11"
+                ].join(" ")
+            }/>
 
             <div className={"border-b-2"} />
             <div ref={sentinelRef}

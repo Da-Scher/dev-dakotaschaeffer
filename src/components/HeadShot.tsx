@@ -1,24 +1,20 @@
 import React, {useLayoutEffect, useRef, useState} from "react";
 import "./headerStyle.css";
 import TextBubbleSection from "./TextBubbleSection";
+import type {CircleGeometry} from "../services/geometry";
+import {useMediaQuery} from "../services/geometry";
 
 type HeadShotProps = {
     className?: string;
-};
-
-export type CircleGeometry = {
-    centerX: number;
-    centerY: number;
-    radius: number;
 };
 
 function HeadShot({className = ""}: HeadShotProps): React.JSX.Element {
     const circleRef: React.RefObject<HTMLImageElement | null> = useRef<HTMLImageElement | null>(null);
     const [geometry, setGeometry] = useState<CircleGeometry | null>(null);
 
-    useLayoutEffect(() => {
+    const useCircularLayout: boolean = useMediaQuery("(min-width: 768px)");
 
-        console.log('HeadShot useLayoutEffect');
+    useLayoutEffect(() => {
         const circle: HTMLImageElement | null = circleRef.current;
 
         if (!circle) return;
@@ -34,7 +30,17 @@ function HeadShot({className = ""}: HeadShotProps): React.JSX.Element {
         };
 
         measure();
-    }, []);
+
+        const resizeObserver = new ResizeObserver(measure);
+        resizeObserver.observe(circle);
+
+        window.addEventListener('resize', measure);
+
+        return () => {
+            resizeObserver.disconnect();
+            window.removeEventListener('resize', measure);
+        }
+    }, [setGeometry]);
 
     //const updateProps: () => void = (): void => {
     //    setProps(getProps());
@@ -47,8 +53,20 @@ function HeadShot({className = ""}: HeadShotProps): React.JSX.Element {
                 alt={"Firstname Lastname"}
                 className={className}
                 ref={circleRef}
+                onLoad={() => {
+                    const rect: DOMRect | undefined = circleRef.current?.getBoundingClientRect();
+                    if (rect) {
+                        setGeometry({
+                            centerX: rect.left + rect.width / 2,
+                            centerY: rect.top + rect.height / 2,
+                            radius: Math.min(rect.width, rect.height) / 2,
+                        });
+                    }
+                }}
             />
-            <TextBubbleSection headshotGeometry={geometry}/>
+            <TextBubbleSection
+                headshotGeometry={useCircularLayout ? geometry : null}
+            />
         </div>
     )
 }
