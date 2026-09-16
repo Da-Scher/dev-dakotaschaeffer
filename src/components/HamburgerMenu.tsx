@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React from "react";
+import type {Label} from "./Header";
 
 const navigationLinks = [
     { label: "Projects", href: "#projects" },
@@ -8,32 +9,34 @@ const navigationLinks = [
 
 type HamburgerMenuProps = {
     buttonClassName?: string;
+    isOpen: boolean;
+    toggleMenu: (label: Label) => void;
+    onClose: () => void;
 };
 
-export default function HamburgerMenu({
-                                          buttonClassName = "",
-                                      }: HamburgerMenuProps) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    function toggleMenu(): void {
-        setIsOpen((current) => !current);
-    }
-
-    function closeMenu(): void {
-        setIsOpen(false);
-    }
+export default function HamburgerMenu(props: HamburgerMenuProps): React.JSX.Element {
+    const {buttonClassName, isOpen, toggleMenu, onClose} = props;
+//    const [isOpen, setIsOpen] = useState(false);
+//
+//    function toggleMenu(): void {
+//        setIsOpen((current) => !current);
+//    }
+//
+//    function closeMenu(): void {
+//        setIsOpen(false);
+//    }
 
     return (
-        <div>
+        <div className={"flex justify-center px-2"}>
             <button
                 type="button"
                 aria-label={isOpen ? "Close page navigation" : "Open page navigation"}
                 aria-expanded={isOpen}
                 aria-controls="secondary-page-navigation"
-                onClick={toggleMenu}
+                onClick={() => toggleMenu("Hamburger")}
                 className={[
                     "relative flex size-11 shrink-0 items-center justify-center",
-                    "text-current transition-colors border-2 border-gray-200 dark:border-gray-300",
+                    "text-current transition-colors border-2 border-gray-900",
                     "focus-visible:outline-2 focus-visible:outline-offset-2",
                     "focus-visible:outline-current",
                     buttonClassName,
@@ -91,8 +94,8 @@ export default function HamburgerMenu({
                      * It visually continues the existing navbar.
                      */
                     "grid overflow-hidden",
-                    "border-y border-zinc-700",
-                    "bg-zinc-950 shadow-md",
+                    "border-y border-b-(--accent-color-dar) border-r-(--accent-color-dark)",
+                    "bg-(--accent-color) shadow-md",
                     "transition-[grid-template-rows,opacity]",
                     "duration-300 ease-in-out",
                     "motion-reduce:transition-none",
@@ -106,7 +109,7 @@ export default function HamburgerMenu({
                         aria-label="Page sections"
                         className="w-full px-6"
                     >
-                        <ul className="flex w-full items-center justify-center py-3">
+                        <ul className="flex w-full items-center justify-center py-3 font-sans text-xl">
                             {navigationLinks.map((link, index) => (
                                 <li
                                     key={link.href}
@@ -123,7 +126,7 @@ export default function HamburgerMenu({
 
                                     <a
                                         href={link.href}
-                                        onClick={closeMenu}
+                                        onClick={onClose}
                                         className="
                       px-3 py-2
                       font-medium

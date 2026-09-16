@@ -11,6 +11,9 @@
     transform: translateX(var(--transform-x));
 }
 
+.bar {
+    border-color: var(--main-color)
+}
 .text-bubble-body {
     --circle-offset-x: 0px;
     background-color: var(--main-color);
