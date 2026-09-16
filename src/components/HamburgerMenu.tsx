@@ -94,8 +94,8 @@ export default function HamburgerMenu(props: HamburgerMenuProps): React.JSX.Elem
                      * It visually continues the existing navbar.
                      */
                     "grid overflow-hidden",
-                    "border-y border-b-zinc-700 border-r-zinc-700",
-                    "bg-gray-900 shadow-md",
+                    "border-y border-b-(--accent-color-dar) border-r-(--accent-color-dark)",
+                    "bg-(--accent-color) shadow-md",
                     "transition-[grid-template-rows,opacity]",
                     "duration-300 ease-in-out",
                     "motion-reduce:transition-none",
@@ -109,7 +109,7 @@ export default function HamburgerMenu(props: HamburgerMenuProps): React.JSX.Elem
                         aria-label="Page sections"
                         className="w-full px-6"
                     >
-                        <ul className="flex w-full items-center justify-center py-3">
+                        <ul className="flex w-full items-center justify-center py-3 font-sans text-xl">
                             {navigationLinks.map((link, index) => (
                                 <li
                                     key={link.href}
