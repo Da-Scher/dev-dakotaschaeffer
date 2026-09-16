@@ -81,7 +81,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                 "transition-[background-color,box-shadow,border-color,opacity]",
                 "duration-300 ease-out",
                 isSticky
-                    ? "border-b border-b-(--accent-color-dark) bg-(--accent-color) text-gray-900 shadow-lg backdrop-blur"
+                    ? "font-sans border-b border-b-(--accent-color-dark) bg-(--accent-color) text-gray-900 shadow-lg backdrop-blur"
                     : "border-b border-transparent bg-transparent"
             ].join(" ")}
             style={{top: stickyTop}}
@@ -97,7 +97,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                     .join(" ")}
                 >
 
-                    <ul className={"flex w-full items-center justify-center py-3 font-sans tracking-wide text-xl gap-4"}>
+                    <ul className={`flex w-full items-center ${screenType === "desktop" ? "justify-start gap-8" : "justify-center gap-4"} py-3 font-sans tracking-wide text-xl`}>
                         <li className={[
                             `flex ${isSticky ? "size-10" : "size-0"} origin-center mr-1 ml-1`,
                             "transition-[opacity,scale] duration-300 ease-out",
@@ -198,10 +198,10 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                             <li
                                 key={`${index}`}
                             >
-                                {index > 0 ? <span><span className={"pr-4"}>|</span>{item.label}</span> : <span>{item.label}</span>}
+                                {index > 0 ? <span><span className={`${screenType === "tablet" ? "px-4" : "px-8"}`}>|</span>{item.label}</span> : <span>{item.label}</span>}
                             </li>
                         ))}
-                        <li className={"flex items-center px-2"}>
+                        <li className={"items-center justify-center px-2"}>
                             <HamburgerMenu isOpen={activeDropdown === "Hamburger"} toggleMenu={handleClickOpen} onClose={closeMenus}/>
                         </li>
                     </ul>

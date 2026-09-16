@@ -27,7 +27,7 @@ export default function HamburgerMenu(props: HamburgerMenuProps): React.JSX.Elem
 //    }
 
     return (
-        <div>
+        <div className={"flex justify-center px-2"}>
             <button
                 type="button"
                 aria-label={isOpen ? "Close page navigation" : "Open page navigation"}
