@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useCallback, useLayoutEffect} from "react";
 import type { PropsWithChildren } from "react";
 import HeadShot from "./HeadShot";
 import HamburgerMenu from "./HamburgerMenu";
@@ -6,19 +6,46 @@ import { useStickyState } from "./useStickyState";
 import "./headerStyle.css";
 import "./../index.css";
 import HeadShotMini from "./HeadShotMini";
+import DropdownMenu from "./DropdownMenu";
 
 type HeaderProps = PropsWithChildren<{
     stickyTop?: number;
 }>;
 
-const navbarItems = [
-    {label: "Resume", href: "#"},
-    {label: "GitHub", href: "#"},
-    {label: "Codeberg", href: "#"},
+export interface NavbarItem {
+    label: string;
+    href: string;
+    type: string;
+    required: boolean;
+}
+
+const navbarItems: NavbarItem[] = [
+    {label: "Resume", href: "#", type: "file", required: true},
+    {label: "GitHub", href: "#", type: "repository", required: false},
+    {label: "Codeberg", href: "#", type: "repository", required: false},
+    {label: "LinkedIn", href: "#", type: "social", required: false},
+    {label: "Mastadon", href: "#", type: "social", required: false},
 ] as const;
 
 function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
     const { sentinelRef, isSticky } = useStickyState(stickyTop);
+    const [screenType, setScreenType] = React.useState<"mobile" | "tablet" | "desktop">(
+        window.screen.width >= 1024 ? "desktop" : window.screen.width >= 768 ? "tablet" : "mobile"
+    )
+
+    const updateScreenType: () => void = useCallback((): void => {
+        setScreenType(
+            window.screen.width >= 1024 ? "desktop" : window.screen.width >= 768 ? "tablet" : "mobile"
+        );
+    }, [setScreenType]);
+
+    useLayoutEffect((): () => void => {
+        window.addEventListener("resize", updateScreenType);
+
+        return (): void => {
+            window.removeEventListener("resize", updateScreenType);
+        }
+    }, [updateScreenType]);
 
     return (
         <>
@@ -29,33 +56,36 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                 ].join(" ")
             }/>
 
-            <div className={"border-b-2"} />
+            <div className={"bar border-b-2 mb-5.25 mx-4.25"} />
             <div ref={sentinelRef}
                   aria-hidden={true}
                   className={"pointer-events-none h-px w-full -mb-px"}
             />
             <header className={[
-                "sticky z-50 h-fit w-full self-start overflow-visible bg-zinc-950 text-white",
-                "transition-[background-color,box-shadow,border-color]",
+                "sticky z-50 h-fit w-full self-start overflow-visible",
+                "text-xl",
+                "transition-[background-color,box-shadow,border-color,opacity]",
                 "duration-300 ease-out",
                 isSticky
-                    ? "border-b border-zinc-700 bg-zinc-950/95 text-gray-300 shadow-lg backdrop-blur"
+                    ? "border-b border-b-(--accent-color-dark) bg-(--accent-color) text-gray-900 shadow-lg backdrop-blur"
                     : "border-b border-transparent bg-transparent"
             ].join(" ")}
             style={{top: stickyTop}}
             data-sticky={isSticky}
             >
                 <nav className={[
-                    "grid grid-row-[1fr] overflow-hidden w-full",
+                    "grid grid-row-[1fr] w-full",
                     "border-y border-zinc-700",
-                    "tracking-[0.5em] border-b-2 transition-[grid-template-rows,opacity]",
-                    "duration-300 ease-in-out motion-reduce:transition-none"]
+                    "bg-(--accent-color) text-gray-900",
+                    "tracking-[0.5em] border-b-2 transition-[grid-template-rows]",
+                    "duration-300 ease-in-out motion-reduce:transition-none",
+                    ]
                     .join(" ")}
                 >
 
-                    <ul className={"flex w-full items-center justify-center py-3 font-mono"}>
+                    <ul className={"flex w-full items-center justify-center py-3 font-sans tracking-wide text-xl gap-4"}>
                         <li className={[
-                            "flex size-10 origin-center mr-1 ml-1",
+                            `flex ${isSticky ? "size-10" : "size-0"} origin-center mr-1 ml-1`,
                             "transition-[opacity,scale] duration-300 ease-out",
                             "motion-reduce:transition-none",
                             isSticky
@@ -65,36 +95,97 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                         >
                             <HeadShotMini className={"size-11 rounded-full object-cover"} />
                         </li>
-                        {navbarItems.map((link, index) => (
+                        {screenType === "mobile" && [
+                            navbarItems.reduce((requiredItems: NavbarItem[], currentItem: NavbarItem): NavbarItem[] => {
+                                if (currentItem.required) requiredItems.push(currentItem);
+                                return requiredItems;
+                            }, []),
+                            navbarItems.reduce((repositoryItems: NavbarItem[], currentItem: NavbarItem): NavbarItem[] => {
+                                if (currentItem.type === "repository") repositoryItems.push(currentItem);
+                                return repositoryItems;
+                            }, []),
+                            navbarItems.reduce((socialItems: NavbarItem[], currentItem: NavbarItem): NavbarItem[] => {
+                                if (currentItem.type === "social") socialItems.push(currentItem);
+                                return socialItems;
+                            }, [])].map((item: NavbarItem | NavbarItem[], index: number): React.JSX.Element => {
+                                if (Array.isArray(item)) {
+                                    console.log(item)
+                                    if (item[0].required) {
+                                        return (
+                                            <>
+                                                {item.map((requiredItem: NavbarItem, requiredIndex: number): React.JSX.Element => (
+                                                    <li
+                                                        key={`required-${requiredItem.type}-${requiredIndex}`}
+                                                    >
+                                                        {requiredIndex > 0 ? <span><span>|</span>{requiredItem.label}</span> : <span>{requiredItem.label}</span>}
+                                                    </li>
+                                                ))}
+                                            </>
+                                        );
+                                    }
+                                    else {
+                                        if (item[0].type === "repository") {
+                                            return (
+                                                <li
+                                                    key={`repository-${index}`}
+                                                    className={"min-w-22.5"}
+                                                >
+                                                    {index > 0 ? <span><span className={"pr-4"}>|</span><DropdownMenu label={"Repos"} items={item} /></span> : <span><DropdownMenu label={"Repos"} items={item} /></span>}
+                                                </li>
+                                            );
+                                        }
+                                        else if (item[0].type === "social") {
+                                            return (
+                                                <li
+                                                    key={`repository-${index}`}
+                                                    className={"min-w-22.5"}
+                                                >
+                                                    {index > 0 ? <span><span className={"pr-4"}>|</span><DropdownMenu label={"Socials"} items={item} /></span> : <span><DropdownMenu label={"Socials"} items={item} /></span>}
+                                                </li>
+                                            );
+                                        }
+                                    }
+                                }
+                                else {
+                                    if (item.required) {
+                                        return (
+                                            <li
+                                                key={`${item.type}-${index}`}
+                                            >
+                                                {item.label}
+                                            </li>
+                                        );
+                                    }
+                                    else {
+                                        if (item.type === "repository") {
+                                            return (
+                                                <li
+                                                    key={`${item.type}-${index}`}
+                                                >
+                                                    {item.label}
+                                                </li>
+                                            );
+                                        }
+                                        else if (item.type === "social") {
+                                            return (
+                                                <li
+                                                    key={`${item.type}-${index}`}
+                                                >
+                                                    {item.label}
+                                                </li>
+                                            );
+                                        }
+                                    }
+                                }
+                        })}
+                        {(screenType === "tablet" || screenType === "desktop") && navbarItems.map((item: NavbarItem, index: number): React.ReactElement => (
                             <li
-                                key={link.href}
-                                className={"flex items-center"}
+                                key={`${index}`}
                             >
-                                {index > 0 && (
-                                <span
-                                    aria-hidden={"false"}
-                                    className={"mx-6 opacity-40"}
-                                >
-                                    |
-                                </span>
-                                )}
-                                <a
-                                    href={link.href}
-                                    className="
-                                        px-3 py-2
-                                        font-medium
-                                        transition-opacity
-                                        hover:opacity-70
-                                        focus-visible:outline-2
-                                        focus-visible:outline-offset-2
-                                        focus-visible:outline-current
-                                    "
-                                >
-                                    {link.label}
-                                </a>
+                                {index > 0 ? <span><span className={"pr-4"}>|</span>{item.label}</span> : <span>{item.label}</span>}
                             </li>
                         ))}
-                        <li className={"flex items-center"}>
+                        <li className={"flex items-center px-2"}>
                             <HamburgerMenu />
                         </li>
                     </ul>

@@ -33,7 +33,7 @@ export default function HamburgerMenu({
                 onClick={toggleMenu}
                 className={[
                     "relative flex size-11 shrink-0 items-center justify-center",
-                    "text-current transition-colors border-2 border-gray-200 dark:border-gray-300",
+                    "text-current transition-colors border-2 border-gray-900",
                     "focus-visible:outline-2 focus-visible:outline-offset-2",
                     "focus-visible:outline-current",
                     buttonClassName,
@@ -91,8 +91,8 @@ export default function HamburgerMenu({
                      * It visually continues the existing navbar.
                      */
                     "grid overflow-hidden",
-                    "border-y border-zinc-700",
-                    "bg-zinc-950 shadow-md",
+                    "border-y border-b-zinc-700 border-r-zinc-700",
+                    "bg-gray-900 shadow-md",
                     "transition-[grid-template-rows,opacity]",
                     "duration-300 ease-in-out",
                     "motion-reduce:transition-none",
