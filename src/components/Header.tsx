@@ -19,6 +19,8 @@ export interface NavbarItem {
     required: boolean;
 }
 
+export type Label = "Repos"|"Socials"|"Hamburger"|null;
+
 const navbarItems: NavbarItem[] = [
     {label: "Resume", href: "#", type: "file", required: true},
     {label: "GitHub", href: "#", type: "repository", required: false},
@@ -32,6 +34,18 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
     const [screenType, setScreenType] = React.useState<"mobile" | "tablet" | "desktop">(
         window.screen.width >= 1024 ? "desktop" : window.screen.width >= 768 ? "tablet" : "mobile"
     )
+    const [activeDropdown, setActiveDropdownOpen] = React.useState<Label>(null);
+    const handleClickOpen: (label: Label) => void = useCallback((label: Label): void => {
+        setActiveDropdownOpen(
+            (currentLabel: Label): Label => currentLabel === label
+                ? null
+                : label
+        );
+    }, []);
+
+    const closeMenus: () => void = useCallback((): void => {
+        setActiveDropdownOpen(null);
+    }, []);
 
     const updateScreenType: () => void = useCallback((): void => {
         setScreenType(
@@ -130,7 +144,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                                                     key={`repository-${index}`}
                                                     className={"min-w-22.5"}
                                                 >
-                                                    {index > 0 ? <span><span className={"pr-4"}>|</span><DropdownMenu label={"Repos"} items={item} /></span> : <span><DropdownMenu label={"Repos"} items={item} /></span>}
+                                                    {index > 0 ? <span><span className={"pr-4"}>|</span><DropdownMenu label={"Repos"} items={item} isOpen={activeDropdown === "Repos"} onToggle={handleClickOpen} onClose={closeMenus}/></span> : <span><DropdownMenu label={"Repos"} items={item} isOpen={activeDropdown === "Socials"} onToggle={handleClickOpen} onClose={closeMenus} /></span>}
                                                 </li>
                                             );
                                         }
@@ -140,10 +154,11 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                                                     key={`repository-${index}`}
                                                     className={"min-w-22.5"}
                                                 >
-                                                    {index > 0 ? <span><span className={"pr-4"}>|</span><DropdownMenu label={"Socials"} items={item} /></span> : <span><DropdownMenu label={"Socials"} items={item} /></span>}
+                                                    {index > 0 ? <span><span className={"pr-4"}>|</span><DropdownMenu label={"Socials"} items={item} isOpen={activeDropdown === "Socials"} onToggle={handleClickOpen} onClose={closeMenus}/></span> : <span><DropdownMenu label={"Socials"} items={item} isOpen={activeDropdown === "Socials"} onToggle={handleClickOpen} onClose={closeMenus} /></span>}
                                                 </li>
                                             );
                                         }
+                                        else return <li></li>
                                     }
                                 }
                                 else {
@@ -175,6 +190,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                                                 </li>
                                             );
                                         }
+                                        else return <li></li>
                                     }
                                 }
                         })}
@@ -186,7 +202,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                             </li>
                         ))}
                         <li className={"flex items-center px-2"}>
-                            <HamburgerMenu />
+                            <HamburgerMenu isOpen={activeDropdown === "Hamburger"} toggleMenu={handleClickOpen} onClose={closeMenus}/>
                         </li>
                     </ul>
                 </nav>

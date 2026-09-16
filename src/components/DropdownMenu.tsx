@@ -1,20 +1,18 @@
-import React, {useCallback} from "react";
+import React from "react";
 import type {NavbarItem} from "./Header";
+import type {Label} from "./Header";
 
 export interface DropdownMenuProps {
-    label: string;
+    label: Label;
     items: NavbarItem[];
+    isOpen: boolean;
+    onToggle: (label: Label) => void;
+    onClose: () => void;
 }
 
 function DropdownMenu(props: DropdownMenuProps): React.JSX.Element {
-    const [isOpen, setIsOpen] = React.useState(false);
-    const closeMenu: () => void= useCallback((): void => {
-        setIsOpen(false);
-    }, [setIsOpen])
-    const toggleMenu: () => void = useCallback((): void => {
-        setIsOpen((current: boolean): boolean => !current);
-    }, [setIsOpen])
-    const {label, items} = props;
+    const {label, items, isOpen, onToggle, onClose} = props;
+    const menuId: string = `${label}-dropdown-menu`;
     return (
         <div
             className={"relative inline-flex justify-center"}
@@ -22,9 +20,9 @@ function DropdownMenu(props: DropdownMenuProps): React.JSX.Element {
             <button
                 type="button"
                 className={"flex items-center justify-center"}
-                aria-controls={`${label}-dropdown-menu`}
+                aria-controls={menuId}
                 aria-expanded={isOpen}
-                onClick={toggleMenu}
+                onClick={() => onToggle(label)}
             >
                 <span className={"sr-only"}>{isOpen ? `Close ${label}` : `Open ${label}`}</span>
                 <span
@@ -36,11 +34,11 @@ function DropdownMenu(props: DropdownMenuProps): React.JSX.Element {
                 </span>
             </button>
             <div
-            id={`${label}-dropdown-menu`}
+            id={menuId}
             aria-hidden={!isOpen}
             className={[
                 `absolute top-full left-1/2 z-50 mt-2`,
-                `w-max min-w-22.5 -translate-x-1/2`,
+                `min-w-24 -translate-x-1/2`,
                 `border border-(--main-color-dark)`,
                 `bg-(--main-color) text-gray-900 text-sm`,
                 `origin-top transition-[transform,opacity]`,
@@ -63,7 +61,7 @@ function DropdownMenu(props: DropdownMenuProps): React.JSX.Element {
                         >
                             {items.map((item: NavbarItem, index: number) => (
                                 <li key={`${label}-${index}`} className={"px-2"}>
-                                    <a href={item.href} onClick={closeMenu}>{item.label}</a>
+                                    <a href={item.href} onClick={onClose}>{item.label}</a>
                                 </li>
                             ))}
                         </ul>
@@ -73,5 +71,4 @@ function DropdownMenu(props: DropdownMenuProps): React.JSX.Element {
         </div>
     )
 }
-
 export default DropdownMenu;
