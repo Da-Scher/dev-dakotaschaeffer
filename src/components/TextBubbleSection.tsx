@@ -1,10 +1,9 @@
 import React, {useCallback, useLayoutEffect, useMemo, useRef, useState} from "react";
-import type {Ref} from "react";
+import type {Ref, RefObject} from "react";
 import HeadShotTextBubble from "./HeadShotTextBubble";
-import type {CircleGeometry} from "../services/geometry";
 
 export interface TextBubbleSectionProps {
-    headshotGeometry?: CircleGeometry | null;
+    headshotRef: RefObject<HTMLImageElement | null>;
 }
 
 export interface TextBubbleObject {
@@ -24,7 +23,7 @@ const bubblesText: TextBubbleObject[] = [
     {text: "Last text (text 4)"},
 ] as const;
 
-function TextBubbleSection({headshotGeometry}: TextBubbleSectionProps): React.JSX.Element {
+function TextBubbleSection({headshotRef}: TextBubbleSectionProps): React.JSX.Element {
     const items: TextBubbleObject[] = [...bubblesText, ...bubblesText];
 
     const scrollRef: Ref<HTMLDivElement> = useRef(null);
@@ -79,7 +78,7 @@ function TextBubbleSection({headshotGeometry}: TextBubbleSectionProps): React.JS
                                 key={index}
                                 text={item.text} link={item.link} lineSize={charactersPerLine}
                                 lines={linesPerBubble}
-                                headshotCircle={headshotGeometry ? headshotGeometry : null}
+                                headshotRef={headshotRef}
                             />
                         ))
                     }
