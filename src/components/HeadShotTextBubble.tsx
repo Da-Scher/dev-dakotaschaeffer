@@ -2,14 +2,13 @@ import React, {useLayoutEffect, useRef} from "react";
 import type {RefObject} from "react";
 import "./../index.css";
 import "./headerStyle.css";
-import type {CircleGeometry} from "../services/geometry";
 
 export interface HeadShotBubbleProps {
     text: string;
     link?: string;
     lineSize: number;
     lines: number;
-    headshotCircle: CircleGeometry | null;
+    headshotRef: RefObject<HTMLImageElement | null>;
 }
 
 function lineCutOff(line: string, start: number, lineLength: number): string {
@@ -39,7 +38,7 @@ function lineCutOff(line: string, start: number, lineLength: number): string {
 }
 
 function HeadShotTextBubble(props: HeadShotBubbleProps): React.JSX.Element {
-    const {text, link, lineSize, lines, headshotCircle} = props;
+    const {text, link, lineSize, lines, headshotRef} = props;
 
     const elementRef: RefObject<HTMLElement | null> = useRef(null);
     const animationFrameRef: RefObject<number | null> = useRef(null);
@@ -65,29 +64,38 @@ function HeadShotTextBubble(props: HeadShotBubbleProps): React.JSX.Element {
 
     useLayoutEffect(() => {
         console.log('')
-        const element = elementRef.current;
-        if (!element) return;
-        if (window.screen.width < 767) {
-            element.style.setProperty("--transform-x", "0px");
-        }
         let frameId: number;
+
         const determineXOffset: () => void = ():void => {
+            const element = elementRef.current;
+            if (!element) return;
+            if (window.screen.width < 767) {
+                element.style.setProperty("--transform-x", "0px");
+                frameId = window.requestAnimationFrame(determineXOffset);
+                return;
+            }
             animationFrameRef.current = null;
             const rect: [x: number, y: number] | null = getRect();
-            if (headshotCircle === undefined || headshotCircle === null) return;
-            if (!elementRef.current) return;
-            const {centerX, centerY, radius} = headshotCircle;
-            const fakeCircleRadius: number = radius + 4;
+            const headshot: HTMLImageElement | null = headshotRef.current;
+            if (!headshot) {
+                frameId = window.requestAnimationFrame(determineXOffset);
+                return;
+            }
+            if (!elementRef.current) {
+                frameId = window.requestAnimationFrame(determineXOffset);
+                return;
+            }
+            const headshotRect: DOMRect = headshot.getBoundingClientRect();
+            const circleCenterY: number = headshotRect.top + headshotRect.height / 2;
+            const headshotRadius: number = Math.min(headshotRect.width, headshotRect.height) / 2;
+            const fakeCircleRadius: number = headshotRadius + 4;
             if (rect === null) {
                 return;
             } else {
                 const y: number = rect[1];
-                const deltaY: number = y - centerY;
+                const deltaY: number = y - circleCenterY;
                 const clampY: number = Math.max(-fakeCircleRadius, Math.min(fakeCircleRadius, deltaY));
                 const deltaX: number = Math.sqrt(Math.max(0, fakeCircleRadius ** 2 - clampY ** 2));
-                //const sine2: number = Math.pow(y / fakeCircleRadius, 2);
-                //const cosine: number = Math.sqrt(1 - sine2);
-                console.log({"transformX": {"deltaY": deltaY, "realRadius": headshotCircle.radius, "fakeRadius": fakeCircleRadius, "y": y, "centerX": centerX, "centerY": centerY, "clampY": clampY, "deltaX": deltaX, "centerX + deltaX": (centerX + deltaX)}});
                 elementRef.current.style.setProperty('--transform-x', `${4 + deltaX}px`)
             }
             frameId = requestAnimationFrame(determineXOffset);
@@ -101,11 +109,7 @@ function HeadShotTextBubble(props: HeadShotBubbleProps): React.JSX.Element {
             window.removeEventListener("resize", determineXOffset);
         };
 
-    }, [headshotCircle])
-
-    //useEffect(() => {
-    //    determineXOffset();
-    //}, []);
+    }, [headshotRef])
 
     const generatedLines: Array<string> = ((text: string, lineSize: number, lines: number): Array<string> => {
         const ellipseRequired: boolean = text.length > lineSize * lines;
