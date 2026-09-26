@@ -7,6 +7,7 @@ import {
     generateColorOrder,
     calculateLanguageStats
 } from "./LanguagePieChartHelper";
+import LanguageTable from "./LanguageTable";
 
 export interface LanguageSlice {
     language: string;
@@ -28,28 +29,30 @@ function LanguagePieChart(): React.JSX.Element {
         eventPieChartToggle,
     } = useProjectsContext();
 
-    function clickEvent(slice: LanguageSlice) {
-        toggleSlice(slice);
-    }
+    //function clickEvent(slice: LanguageSlice) {
+    //    toggleSlice(slice);
+    //}
 
-    const languageStats: NormalizedLanguageStats = React.useMemo(
-        (): NormalizedLanguageStats => calculateLanguageStats(filteredCommits),
+    const languageStats: NormalizedLanguageStats | undefined = React.useMemo(
+        (): NormalizedLanguageStats | undefined => calculateLanguageStats(filteredCommits),
         [filteredCommits]
     )
 
     const colorOrder: string[] = generateColorOrder(languageStats as NormalizedLanguageStats);
 
-    console.log(`color order: ${colorOrder.toString()}`);
-    const slices: LanguageSlice[] = makeSlices(languageStats, colorOrder, selectedLanguages);
+    const slices: LanguageSlice[] | undefined = makeSlices(languageStats, colorOrder, selectedLanguages);
+    console.log(slices);
 
     React.useEffect(() => {
-        console.log("please god work")
+        if (!slices) return;
         for (const slice of slices) {
+            console.log(`eventPieChartToggle: ${eventPieChartToggle}`);
             if (slice.language === eventPieChartToggle) {
+                //console.log(`LanguagePieChart: Would toggleSlice here.`)
                 toggleSlice(slice);
             }
         }
-    }, [eventPieChartToggle]);
+    }, [toggleSlice, slices, eventPieChartToggle]);
 
 
     return (
@@ -58,7 +61,6 @@ function LanguagePieChart(): React.JSX.Element {
             <figure
                 className={"language-chart activity-chart"}
             >
-                <figcaption>Language use statistics</figcaption>
                 <ul
                     className={`pie-chart ${isAnimating ? "is-animating" : ""}`}
                     onAnimationStart={(event) => {
@@ -74,7 +76,7 @@ function LanguagePieChart(): React.JSX.Element {
                     }}
                     aria-hidden={true}
                 >
-                    {slices.map((slice, index) =>
+                    {slices && slices.map((slice, index) =>
                         (
                                     <li
                                         className={
@@ -92,49 +94,7 @@ function LanguagePieChart(): React.JSX.Element {
                                     />
                     ))}
                 </ul>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Language</th>
-                            <th>Changes</th>
-                            <th>Usage</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {slices.map((slice) => {
-                            //const typedLanguage = slice.language as ProgrammingLanguage;
-
-                            return (
-                            <tr
-                                key={slice.language}
-                                tabIndex={0}
-                                aria-pressed={selectedLanguages.has(slice)}
-                                onMouseEnter={() => setHighlightedLanguage(slice.language)}
-                                onMouseLeave={() => setHighlightedLanguage(null)}
-                                onFocus={() => setHighlightedLanguage(slice.language)}
-                                onBlur={() => setHighlightedLanguage(null)}
-                                onClick={() => clickEvent(slice)}
-                            >
-                                <th scope={"row"}>
-                                    <span
-                                        className={"language-color"}
-                                        style={{
-                                            backgroundColor: slice.color,
-                                        }}
-                                        aria-hidden={true}
-                                    />
-                                    {slice.language}
-                                </th>
-                                <td>
-                                    {slice.stat.changes.toLocaleString()}
-                                </td>
-                                <td>
-                                    {slice.percentage.toFixed(2)}%
-                                </td>
-                            </tr>
-                        )})}
-                    </tbody>
-                </table>
+                <LanguageTable slices={slices} setHighlightedLanguage={setHighlightedLanguage} />
             </figure>
         </>
     );

@@ -8,7 +8,7 @@ function ProjectsLanguageStats(): React.JSX.Element {
 
     return (
         <div
-            className={"language-stats"}
+            className={"language-stats grid grid-cols-2 grid-rows-2 gap-0 border-black h-80 lg:h-160"}
         >
             <HourlyGraph />
             <WeeklyGraph />

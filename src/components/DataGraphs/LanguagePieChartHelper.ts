@@ -8,11 +8,12 @@ import type {LanguageSlice} from "./LanguagePieChart";
 import type {CommitActivity} from "../../types/commit";
 
 const PIE_COLORS: string[] = [
-    "#0000FF",
-    "#008000",
-    "#FFA500",
-    "#800080",
-    "#FF0000",
+    "#D07272",
+    "#B84DE2",
+    "#6464DD",
+    "#73DF92",
+    "#E7EB7A",
+    "#EEB789",
 ];
 
 export function generateColorOrder(languageStats: NormalizedLanguageStats): string[] {
@@ -37,7 +38,9 @@ export function generateColorOrder(languageStats: NormalizedLanguageStats): stri
     }
 }
 
-export function makeSlices(languageStats: NormalizedLanguageStats, colorOrder: string[], selectedLanguages: Set<LanguageSlice>) {
+export function makeSlices(languageStats: NormalizedLanguageStats | undefined, colorOrder: string[], selectedLanguages: Set<LanguageSlice>): LanguageSlice[] | undefined {
+    console.log(`makeSlices start`)
+    if (!languageStats) return undefined;
     let accumulatedPercentage: number = 0;
     let currentIndex: number = 0;
     return Object.entries(languageStats.stats).map(
@@ -54,18 +57,23 @@ export function makeSlices(languageStats: NormalizedLanguageStats, colorOrder: s
                 accumulatedPercentage,
                 color: ((): string => {
                     console.log(`selectedLanguages length: ${selectedLanguages.size}`);
-                    for (const slice of selectedLanguages) {
-                        console.log(`slice.color ${slice.color} and colorOrder[currentIndex ${currentIndex} % colorOrder.length ${colorOrder.length}] ${colorOrder[currentIndex % colorOrder.length]}`);
-                        if (slice.color === colorOrder[currentIndex % colorOrder.length]) {
-                            while (slice.color === colorOrder[currentIndex % colorOrder.length % colorOrder.length])
-                                currentIndex++;
-                        }
-                        if (slice.language === language) {
-                            return slice.color;
+                    const existing = [...selectedLanguages].find(
+                        slice => slice.language === language
+                    );
+                    if (existing) return existing.color;
+                    if (colorOrder.length === 0) {
+                        throw new Error("makeSlices requires at least one color");
+                    }
+                    const usedColors = new Set([...selectedLanguages].map(slice => slice.color));
+                    for (let offset = 0; offset < colorOrder.length; offset++) {
+                        const index = (currentIndex + offset) % colorOrder.length;
+                        const color = colorOrder[index];
+                        if (!usedColors.has(color)) {
+                            currentIndex = index + 1;
+                            return color;
                         }
                     }
-                    console.log(`currentIndex: ${currentIndex}`);
-                    console.log(colorOrder[currentIndex]);
+
                     return colorOrder[currentIndex++ % colorOrder.length];
                 })()
             }
@@ -74,7 +82,8 @@ export function makeSlices(languageStats: NormalizedLanguageStats, colorOrder: s
         })
 }
 
-export function calculateLanguageStats(commits: CommitActivity[]): NormalizedLanguageStats {
+export function calculateLanguageStats(commits: CommitActivity[] | undefined): NormalizedLanguageStats | undefined {
+    if (!commits) return undefined;
     const langStatsMap: NormalizedLanguageStats =
         commits.map((commit: CommitActivity): NormalizedLanguageStats | undefined => {
             return commit.languageStats;

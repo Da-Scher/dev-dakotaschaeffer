@@ -5,10 +5,10 @@ import ProjectsSearch from "./ProjectsSearch";
 function ProjectsHeader(): React.JSX.Element {
 
     return (
-        <>
+        <div className={"md:min-h-[75vh]"}>
             <ProjectsLanguageStats />
             <ProjectsSearch />
-        </>
+        </div>
     )
 }
 

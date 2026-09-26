@@ -1,9 +1,10 @@
-import React, {useMemo} from 'react';
-import { Bar } from 'react-chartjs-2';
+import React, {useEffect, useMemo, useState} from 'react';
+import {Chart} from 'react-chartjs-2';
 import type {ChartData, ChartOptions} from 'chart.js/auto';
 import './WeeklyGraph.css';
 import type {CommitActivity} from "../../types/commit";
 import {useProjectsContext} from "../../context/useProjectsContext";
+import {pluginWeeklyGraph} from "./customChartBackgrounds";
 
 const WEEK_LABELS: string[] = Array.from(
     {length: 7},
@@ -13,47 +14,162 @@ const WEEK_LABELS: string[] = Array.from(
         }).format(new Date(2026, 0, 4 + day))
 );
 
-function countActivityByDayOfWeek(activities: CommitActivity[]): number[] {
-    return activities.reduce<number[]>(
-        (dailyActivity: number[], activity: CommitActivity): number[] => {
-            const date = new Date(activity.authoredAt);
+function averageActivityByDayOfWeek(activities: CommitActivity[] | undefined, chartYHeight: number): number[] {
+    const WEEKS: number = 52;
+    const weeklyTotals: number[] = Array<number>(7).fill(0);
 
-            if (Number.isNaN(date.getTime())) {
-                return dailyActivity;
+    // Exit if activities is not yet defined.
+    if (!activities) return new Array<number>(7).fill(0);
+
+    // Define the start date at midnight of 364 days ago.
+    const startDate: Date = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    startDate.setDate(startDate.getDate() - (WEEKS * 7));
+
+    for (const activity of activities) {
+        const date: Date = new Date(activity.authoredAt);
+        if (
+            Number.isNaN(date.getTime()) ||
+            date < startDate ||
+            date > new Date()
+        ) continue;
+        weeklyTotals[date.getDay()] += 1;
+    }
+    const weeklyAverage: number[] = weeklyTotals.map<number>(
+        (commitCount: number): number => commitCount / WEEKS
+    );
+    const maximum: number = Math.max(...weeklyAverage);
+    if (maximum === 0) {
+        return chartYHeight === 0
+            ?   weeklyAverage
+            :   weeklyAverage.map<number>((average: number): number => average * chartYHeight);
+    }
+
+    return chartYHeight === 0
+        ?   weeklyAverage.map<number>((average: number): number => average / maximum)
+        :   weeklyAverage.map<number>((average: number): number => (average / maximum) * chartYHeight);
+}
+
+function activityThisWeek(activities: CommitActivity[] | undefined): number[] {
+    if (!activities) return new Array<number>(7).fill(0);
+    const currentTime: Date = new Date();
+    console.log(currentTime);
+    console.log(currentTime.getDate() - currentTime.getDay());
+    const startDate: Date = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() - currentTime.getDay());
+    return activities.reduce<number[]>(
+        (actThisWeek: number[], activity: CommitActivity): number[] => {
+            const actDate = new Date(activity.authoredAt);
+            //console.log(`Commit Date: ${actDate.toString()} < startDate: ${startDate.toString()} ? ${actDate.getTime() < startDate.getTime()}`);
+            if (Number.isNaN(actDate.getTime())) {
+                return actThisWeek;
             }
-            const day: number = date.getDay();
-            dailyActivity[day] += 1;
-            return dailyActivity;
+            if (actDate.getTime() < startDate.getTime()) {
+                //console.log("dates compared.")
+                return actThisWeek;
+            }
+            actThisWeek[actDate.getDay()]++;
+            return actThisWeek;
         }, Array<number>(7).fill(0)
     );
 }
 
 function WeeklyGraph(): React.JSX.Element {
-    const { filteredCommits } = useProjectsContext();
-    const weeklyGraphData: number[] = useMemo((): number[] => countActivityByDayOfWeek(filteredCommits), [filteredCommits]);
+    const [fontSize, setFontSize] = useState<number>(12);
+    const [tooltipFontSize, setTooltipFontSize] = useState<number>(12);
+    const [pointRadius, setPointRadius] = useState<number>(3);
+    useEffect(
+        () => {
+            const handlePointRadiusResize = () => {
+                if (window.screen.width > 2559) {
+                    setPointRadius(9);
+                }
+                else {
+                    setPointRadius(3);
+                }
+            }
+            const handleResize = () => {
+                if (window.screen.width > 2559) {
+                    setFontSize(52);
+                    setTooltipFontSize(48);
+                }
+                else if (window.screen.width > 1439) {
+                    setFontSize(36);
+                    setTooltipFontSize(32);
+                }
+                else if (window.screen.width > 1023) {
+                    setFontSize(24);
+                    setTooltipFontSize(20);
+                }
+                else if (window.screen.width > 767) {
+                    setFontSize(12);
+                    setTooltipFontSize(16);
+                }
+                else {
+                    setFontSize(12);
+                    setTooltipFontSize(12);
+                }
+            }
+            handlePointRadiusResize();
+            handleResize();
+            window.addEventListener('resize', handlePointRadiusResize);
+            window.addEventListener('resize', handleResize);
+            return () => {
+                window.removeEventListener('resize', handlePointRadiusResize);
+                window.removeEventListener('resize', handleResize);
+            }
+        }, []);
 
-    const data: ChartData<"bar", number[], string> = {
+    const { filteredCommits } = useProjectsContext();
+    const weeklyAccumulative: number[] = useMemo(
+        (): number[] => activityThisWeek(filteredCommits),
+        [filteredCommits]
+    );
+    const weeklyAverage: number[] = averageActivityByDayOfWeek(filteredCommits, Math.max(...weeklyAccumulative));
+
+    const data: ChartData<"bar" | "line", number[], string> = {
         labels: WEEK_LABELS,
         datasets: [
             {
-                label: "Commits",
-                data: weeklyGraphData,
-                backgroundColor: "#22c55e",
-                hoverBackgroundColor: "#4ade80",
-                borderColor: "#16a43a",
+                label: "Weekly Average (Commits)",
+                data: weeklyAverage,
+                type: "line",
+                pointBackgroundColor: "#35a3ac",
+                backgroundColor: "#34C759",
+                hoverBackgroundColor: "#289c44",
+                pointRadius: pointRadius,
+                pointHoverRadius: pointRadius + Math.floor(pointRadius / 3),
+                pointHitRadius: pointRadius + Math.floor(pointRadius / 3),
+            },
+            {
+                label: "Daily Accumulative (Commits)",
+                data: weeklyAccumulative,
+                type: "bar",
+                backgroundColor: "#9dada2",
+                hoverBackgroundColor: "#849187",
+                borderColor: "#FFFFFF",
                 borderRadius: 4,
                 borderSkipped: false,
-            }
+            },
         ],
     };
-    const options: ChartOptions<"bar"> = {
+    const options: ChartOptions<"bar" | "line"> = {
         responsive: true,
         maintainAspectRatio: false,
         animation: {
             duration: 300,
         },
+        layout: {
+            padding: {
+                left: 20,
+                right: 20,
+            },
+        },
         plugins: {
+            pluginWeeklyGraph: {
+                backgroundColor: '#9c9080',
+            },
             legend: {
+                display: false,
                 labels: {
                     color: "#f3f4f6",
                 },
@@ -63,6 +179,12 @@ function WeeklyGraph(): React.JSX.Element {
                 titleColor: "#f9fafb",
                 bodyColor: "#d1d5db",
                 borderColor: "#4b5563",
+                bodyFont: {
+                    size: tooltipFontSize,
+                },
+                titleFont: {
+                    size: tooltipFontSize,
+                },
                 borderWidth: 1,
                 callbacks: {
                     title: ([item]) =>
@@ -78,8 +200,11 @@ function WeeklyGraph(): React.JSX.Element {
             x: {
                 title: {
                     display: true,
-                    text: "Day of the week",
+                    text: "Commits Over Last Week",
                     color: "#f3f4f6",
+                    font: {
+                        size: fontSize,
+                    }
                 },
                 grid: {
                     display: false,
@@ -88,29 +213,33 @@ function WeeklyGraph(): React.JSX.Element {
                     color: "#d1d5db",
                     autoSkip: false,
                     maxRotation: 0,
+                    font: {
+                        size: fontSize,
+                    }
                 },
             },
             y: {
                 beginAtZero: true,
                 title: {
-                    color: "#f3f4f6",
-                    display: true,
-                    text: "Commits",
+                    display: false,
+                    //color: "#f3f4f6",
+                    //text: "Commits",
                 },
                 ticks: {
-                    color: "#d1d5db",
-                    precision: 0,
+                    display: false,
+                    //color: "#d1d5db",
+                    //precision: 0,
                 },
             }
         },
     };
     return (
         <div
-            className={"activity-chart"}>
+            className={"weekly-graph-container"}>
             <figure
-                className={"weekly-graph-container activity-chart__canvas"}
+                className={"weekly-graph"}
             >
-                <Bar data={data} options={options} />
+                <Chart<"bar" | "line", number[], string> type={"bar"} className={"rounded-4xl p-4"} data={data} options={options} plugins={[pluginWeeklyGraph]} />
             </figure>
         </div>
     );
