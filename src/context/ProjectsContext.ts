@@ -5,7 +5,7 @@ import type { LanguageSlice } from "../components/DataGraphs/LanguagePieChart";
 
 export interface ProjectsContextValue {
     filteredCommits: CommitActivity[] | undefined;
-    readmes: ReadmeData[];
+    readmes: ReadmeData[] | undefined;
     selectedLanguages: Set<LanguageSlice>;
     searchTags: Set<string>;
     toggleSlice: (language: LanguageSlice | string) => void;

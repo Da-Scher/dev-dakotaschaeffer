@@ -13,6 +13,16 @@ export type ProgrammingLanguage =
     |   "TypeScript"
     |   "Yaml"
 
+export const shortenName = new Map<string, string>([
+    ["Haskell", ".hsl"],
+    ["HTML/CSS", ".html"],
+    ["GDScript", ".gsl"],
+    ["JavaScript", ".js"],
+    ["OCamel", ".ml"],
+    ["Python", ".py"],
+    ["TypeScript", ".ts"],
+]);
+
 export interface LanguageStat {
     additions: number;
     deletions: number;

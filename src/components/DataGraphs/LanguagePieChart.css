@@ -10,29 +10,45 @@
 }
 
 .activity-chart {
-    padding: 1rem;
     color: #f3f4f6;
-    background-color: #111827;
-    border: 1px solid #374151;
-    border-radius: 0.75rem;
+    background-color: var(--main-color);
+    border-left: 1px solid #000;
+    border-radius: 0 1rem 1rem 0;
+    margin: 1rem 1rem 0 0;
 }
 
 .language-chart {
     grid-area: language-chart;
-    display: grid;
-    grid-template-areas:
-        "language-chart-pie"
-        "language-chart-table";
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
     justify-items: center;
     align-items: start;
+}
+.language-chart figcaption {
+    font-size: 10px;
+}
+
+.language-chart div table {
+    width: 100%;
+}
+
+.language-table-head tr th {
+    text-align: left;
+    width: 50%;
+}
+.language-table-head tr td {
+    text-align: right;
+    width: 50%;
 }
 
 .pie-chart {
     display: grid;
+    padding: 0.75rem 1.25rem;
     grid-area: language-chart-pie;
-    justify-self: center;
-    align-items: center;
+    justify-content: center;
+    justify-items: center;
+    width: 100%;
 }
 
 .pie-chart li{
@@ -43,7 +59,7 @@
     grid-row: 1;
     grid-column: 1;
 
-    --radius: 10vmin;
+    --radius: 2.4rem;
 
     --bg-color: var(--data-color);
     --offset: calc(360deg * var(--accum) / 100);
@@ -61,18 +77,6 @@
             from calc(var(--offset)),
             var(--bg-color) 0% var(--draw),
             transparent var(--percentage) 100%
-    );
-
-    -webkit-mask: radial-gradient(
-        circle at center,
-        transparent 0 10vmin,
-        black calc(10vmin + 1px)
-    );
-
-    mask: radial-gradient(
-        circle at center,
-        transparent 0 5vmin,
-        black calc(5vmin + 1px)
     );
 
     animation: piechart-grow 300ms ease-in-out forwards;
@@ -99,39 +103,98 @@
     grid-row: 1;
     grid-column: 1;
     place-self: center;
-    width: 20vmin;
+    width: 2.3rem;
     aspect-ratio: 1;
     border-radius: 50%;
 
-    background-color: transparent;
+    background-color: #3A4535;
 
     z-index: 2;
     pointer-events: none;
 }
 
-.language-chart table {
-    width: 100%;
-    grid-area: language-chart-table;
-    margin-top: 5rem;
-    border-collapse: collapse;
+.language-chart div{
+    flex-grow: 1;
+    display: flex;
+    padding-bottom: 0.75rem;
+    flex-direction: column;
+    min-height: 0;
+    max-height: 100%;
+    overflow: auto;
 }
 
-.language-chart th,
-.language-chart td {
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid currentColor;
+.language-chart div table {
+    grid-area: language-chart-table;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+.table-scroll {
+    flex-grow: 1;
+    min-height: 0;
+    overflow-y: auto;
+
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.table-scroll table {
+    width: 100%;
+}
+
+.pill {
+    font-size: smaller;
+    margin: 0 0.5rem;
+}
+
+.pill th {
+    align-content: center;
     text-align: left;
+    width: 66%;
+}
+
+.pill td {
+    text-align: right;
+    align-items: center;
+    align-content: center;
+    width: 34%;
+}
+
+.language-table-head tr th,
+.language-table-head tr td {
+    box-sizing: border-box;
+    height: 2rem;
+    font-size: smaller;
+    width: 50%;
+    padding: 0.5rem;
+}
+
+.language-chart tr td {
+    min-width: 2rem;
+    text-align: right;
+    font-weight: bold;
+}
+
+.language-color {
+    color: currentColor;
+    min-height: 1rem;
+    min-width: 1rem;
 }
 
 .language-chart tbody tr {
     cursor: default;
+    background-color: var(--accent-color);
+    border-radius: 1rem;
+    margin-bottom: 0.25rem;
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid black;
+    border-right: 1px solid black;
 }
 
-.language-chart tbody tr:hover,
-.language-chart tbody tr:focus {
-    background-color: rgb(255 255 255 / 10%);
-    outline: 2px solid currentColor;
-    outline-offset: -2px;
+.language-chart tbody tr.pressed {
+    border-top: 1px solid black;
+    border-left: 1px solid black;
+    border-right: none;
+    border-bottom: none;
 }
 
 .language-color {
@@ -151,5 +214,72 @@
     to {
         --draw-percentage: var(--data-percentage);
         --offset-percentage: 1;
+    }
+}
+
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+    .pie-chart li {
+        --radius: 4.8rem;
+    }
+
+    .pie-chart::after {
+        width: 5rem;
+    }
+
+    .language-chart tbody tr th {
+        width: 66%;
+    }
+    .language-chart tbody tr td {
+        width: 34%;
+    }
+
+
+    thead tr th {
+        width: 66%;
+    }
+    thead tr th {
+        width: 34%;
+    }
+}
+
+@media screen and (min-width: 1024px) and (max-width: 2559px) {
+    .pie-chart li {
+        --radius: 10vw;
+    }
+    .pie-chart::after {
+        width: 9rem;
+    }
+    .table-scroll {
+        min-height: 100%;
+    }
+    .pill {
+        height: 4rem;
+    }
+    .language-table-head tr th,
+    .language-table-head tr td {
+        box-sizing: border-box;
+        height: 2rem;
+        font-size: smaller;
+        width: 33%;
+        padding: 0.5rem;
+    }
+}
+
+@media screen and (min-width: 2560px) {
+    .pie-chart li {
+        --radius: 15rem;
+    }
+    .pie-chart::after {
+        width: 21rem;
+    }
+    .pill {
+        height: 7rem;
+        font-size: xx-large;
+    }
+    .language-table-head tr th,
+    .language-table-head tr td {
+        height: 4rem;
+        font-size: xxx-large;
+        width: 33%;
     }
 }
