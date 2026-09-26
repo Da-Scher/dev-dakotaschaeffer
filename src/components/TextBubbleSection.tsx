@@ -66,7 +66,7 @@ function TextBubbleSection({headshotRef}: TextBubbleSectionProps): React.JSX.Ele
         return keyFrameRule + "\n}";
     }, [desktop]);
     return (
-        <div className={"w-full"}>
+        <div className={"min-w-0 grow"}>
             <style>{keyFrames}</style>
             <div className={"text-bubble-section"}>
                 <div className={"text-bubble-scroll"}

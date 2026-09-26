@@ -160,7 +160,7 @@ function HeadShotTextBubble(props: HeadShotBubbleProps): React.JSX.Element {
                     className={`link-bubble-tail h-0 w-0 border-r-32 border-t-32 border-t-transparent border-l-transparent border-b-transparent`}
                 />
                 <div
-                    className={`link-bubble-body w-full h-21 lg:h-39.25 md:w-90 rounded-2xl mr-4 border-b-2 border-b-transparent border-r-2 border-r-transparent`}>
+                    className={`link-bubble-body min-w-0 grow h-21 lg:h-39.25 md:w-90 rounded-2xl mr-4 border-b-2 border-b-transparent border-r-2 border-r-transparent`}>
                     {generatedLines.map((line: string): React.JSX.Element => (
                         <a href={link} className={"pl-4 link-bubble "}>{line}<br/></a>))}
                 </div>
@@ -171,7 +171,7 @@ function HeadShotTextBubble(props: HeadShotBubbleProps): React.JSX.Element {
                         className={"text-bubble-tail h-0 w-0 border-r-32 border-t-32 border-t-transparent border-l-transparent border-b-transparent"}
                     />
                     <div
-                        className={"text-bubble-body w-full h-21 lg:h-39.25 md:w-90 rounded-2xl mr-4 border-b-2 border-b-transparent border-r-2 border-r-transparent"}>
+                        className={"text-bubble-body min-w-0 grow h-21 lg:h-39.25 md:w-90 rounded-2xl mr-4 border-b-2 border-b-transparent border-r-2 border-r-transparent"}>
                         { generatedLines.map((line: string): React.JSX.Element => (<span className={"pl-4 text-bubble"}>{line}<br/></span>)) }
                     </div>
                 </span>

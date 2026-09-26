@@ -65,8 +65,8 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
         <>
             <HeadShot className={
                 [
-                    "ml-4 mt-9 mb-11 h-48 w-48 rounded-full border-2 border-[#999999]",
-                    "md:ml-11"
+                    "ml-4 mt-auto mb-11 h-24 w-24 rounded-full border-2 border-[#999999]",
+                    "md:ml-11 md:w-48 md:h-48"
                 ].join(" ")
             }/>
 
@@ -88,7 +88,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
             data-sticky={isSticky}
             >
                 <nav className={[
-                    "grid grid-row-[1fr] w-full",
+                    "grid grid-rows-[1fr] w-full",
                     "border-y border-zinc-700",
                     "bg-(--accent-color) text-gray-900",
                     "tracking-[0.5em] border-b-2 transition-[grid-template-rows]",
@@ -97,9 +97,9 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                     .join(" ")}
                 >
 
-                    <ul className={`flex w-full items-center ${screenType === "desktop" ? "justify-start gap-8" : "justify-center gap-4"} py-3 font-sans tracking-wide text-xl`}>
+                    <ul className={`flex grow min-w-0 w-full items-center ${screenType === "desktop" ? "justify-start gap-8" : "justify-center gap-4"} py-3 font-sans tracking-wide text-xl`}>
                         <li className={[
-                            `flex ${isSticky ? "size-10" : "size-0"} origin-center mr-1 ml-1`,
+                            `flex ${isSticky ? "size-10" : "size-0"} origin-center mr-1 ml-1 gap-1`,
                             "transition-[opacity,scale] duration-300 ease-out",
                             "motion-reduce:transition-none",
                             isSticky
@@ -130,8 +130,12 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                                                 {item.map((requiredItem: NavbarItem, requiredIndex: number): React.JSX.Element => (
                                                     <li
                                                         key={`required-${requiredItem.type}-${requiredIndex}`}
+                                                        className={"min-w-0 grow"}
                                                     >
-                                                        {requiredIndex > 0 ? <span><span>|</span>{requiredItem.label}</span> : <span>{requiredItem.label}</span>}
+                                                        <span>
+                                                            <p>{requiredItem.label}</p>
+                                                        </span>
+
                                                     </li>
                                                 ))}
                                             </>
@@ -142,9 +146,17 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                                             return (
                                                 <li
                                                     key={`repository-${index}`}
-                                                    className={"min-w-22.5"}
+                                                    className={"flex min-w-0 grow"}
                                                 >
-                                                    {index > 0 ? <span><span className={"pr-4"}>|</span><DropdownMenu label={"Repos"} items={item} isOpen={activeDropdown === "Repos"} onToggle={handleClickOpen} onClose={closeMenus}/></span> : <span><DropdownMenu label={"Repos"} items={item} isOpen={activeDropdown === "Socials"} onToggle={handleClickOpen} onClose={closeMenus} /></span>}
+                                                    <span>
+                                                        <span>
+                                                            <DropdownMenu label={"Repos"} items={item}
+                                                                          isOpen={activeDropdown === "Repos"}
+                                                                          onToggle={handleClickOpen}
+                                                                          onClose={closeMenus}
+                                                            />
+                                                        </span>
+                                                    </span>
                                                 </li>
                                             );
                                         }
@@ -152,9 +164,17 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                                             return (
                                                 <li
                                                     key={`repository-${index}`}
-                                                    className={"min-w-22.5"}
+                                                    className={"flex min-w-0 grow"}
                                                 >
-                                                    {index > 0 ? <span><span className={"pr-4"}>|</span><DropdownMenu label={"Socials"} items={item} isOpen={activeDropdown === "Socials"} onToggle={handleClickOpen} onClose={closeMenus}/></span> : <span><DropdownMenu label={"Socials"} items={item} isOpen={activeDropdown === "Socials"} onToggle={handleClickOpen} onClose={closeMenus} /></span>}
+                                                    <span>
+                                                        <DropdownMenu
+                                                            label={"Socials"}
+                                                            items={item}
+                                                            isOpen={activeDropdown === "Socials"}
+                                                            onToggle={handleClickOpen}
+                                                            onClose={closeMenus}
+                                                        />
+                                                    </span>
                                                 </li>
                                             );
                                         }
@@ -176,6 +196,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                                             return (
                                                 <li
                                                     key={`${item.type}-${index}`}
+                                                    className={"flex min-w-0 grow"}
                                                 >
                                                     {item.label}
                                                 </li>
@@ -185,6 +206,7 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                                             return (
                                                 <li
                                                     key={`${item.type}-${index}`}
+                                                    className={"flex min-w-0 grow"}
                                                 >
                                                     {item.label}
                                                 </li>
@@ -197,11 +219,16 @@ function Header({stickyTop = 0}: HeaderProps): React.JSX.Element {
                         {(screenType === "tablet" || screenType === "desktop") && navbarItems.map((item: NavbarItem, index: number): React.ReactElement => (
                             <li
                                 key={`${index}`}
+                                className={"flex"}
                             >
-                                {index > 0 ? <span><span className={`${screenType === "tablet" ? "px-4" : "px-8"}`}>|</span>{item.label}</span> : <span>{item.label}</span>}
+                                <span>
+                                    <p className={"min-w-0 grow"}>
+                                        {item.label}
+                                    </p>
+                                </span>
                             </li>
                         ))}
-                        <li className={"items-center justify-center px-2"}>
+                        <li className={"flex items-center justify-center px-2"}>
                             <HamburgerMenu isOpen={activeDropdown === "Hamburger"} toggleMenu={handleClickOpen} onClose={closeMenus}/>
                         </li>
                     </ul>

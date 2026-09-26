@@ -15,7 +15,9 @@ function HeadShot({className = ""}: HeadShotProps): React.JSX.Element {
             <img
                 src={"./../public/EXAMPLE_pp.png"}
                 alt={"Firstname Lastname"}
-                className={className}
+                className={[
+                    className
+                ].join(" ")}
                 ref={headshotRef}
             />
             <TextBubbleSection
