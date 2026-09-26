@@ -1,21 +1,56 @@
-import React from "react";
+import React, {useCallback, useReducer} from "react";
 //import type { ProgrammingLanguage } from "../types/programlanguages";
 import type {CommitActivity, ReadmeData} from "../types/commit";
 import { ProjectsContext } from "./ProjectsContext";
 import type {LanguageSlice} from "../components/DataGraphs/LanguagePieChart";
-import type {ProgrammingLanguage} from "../types/programlanguages";
+//import type {ProgrammingLanguage} from "../types/programlanguages";
 
 interface ProjectsProviderProps {
     commits: CommitActivity[];
-    readmes: ReadmeData[];
+    readmes: ReadmeData[] | undefined;
     children: React.ReactNode;
+}
+
+type ProjectsSelection = {
+    selectedLanguages: Set<LanguageSlice>;
+    eventPieChartToggle: string;
+}
+
+type SelectionAction = {
+    type: "toggleSlice";
+    language: LanguageSlice | string;
+}
+
+function selectionReducer(
+    state: ProjectsSelection,
+    action: SelectionAction,
+): ProjectsSelection {
+    console.log(`selectionReducer(state = {selectedLanguages: ${state.selectedLanguages}, eventPieChartToggle: ${state.eventPieChartToggle}}, action = {type: ${action.type}, language: ${action.language}} Start.`);
+    const input: LanguageSlice | string = action.language;
+    const name: string = typeof input === "string" ? input : input.language;
+    const existing: LanguageSlice | undefined = [...state.selectedLanguages].find(
+        (slice) => slice.language === name,
+    );
+    console.count(`toggleSlice: ${typeof input === "string" ? input : input.language}`);
+    console.log("selected before:", [...state.selectedLanguages].map(s => s.language));
+    if (existing) {
+        const selectedLanguages = new Set<LanguageSlice>(state.selectedLanguages);
+        selectedLanguages.delete(existing);
+        return { selectedLanguages, eventPieChartToggle: ""};
+    }
+    if (typeof input === "string") {
+        return {...state, eventPieChartToggle: input};
+    }
+    const selectedLanguages = new Set<LanguageSlice>(state.selectedLanguages);
+    selectedLanguages.add(input);
+    return {...state, selectedLanguages};
 }
 
 export function ProjectsProvider(props: ProjectsProviderProps) {
     const {commits, children, readmes} = props;
-    const [selectedLanguages, setSelectedLanguages] = React.useState<Set<LanguageSlice>>(() => new Set());
+    //const [selectedLanguages, setSelectedLanguages] = React.useState<Set<LanguageSlice>>(() => new Set());
     const [searchTags, setSearchTags] = React.useState<Set<string>>(() => new Set());
-    const [eventPieChartToggle, setEventPieChartToggle] = React.useState<string>("");
+    //const [eventPieChartToggle, setEventPieChartToggle] = React.useState<string>("");
 
     function removeSearchTags(tag: string): void {
         setSearchTags((prevTags: Set<string>) => {
@@ -27,6 +62,11 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
         });
     }
 
+    const [selection, dispatch] = useReducer(selectionReducer, {
+        selectedLanguages: new Set<LanguageSlice>(),
+        eventPieChartToggle: "",
+    });
+
     function addSearchTags(text: string) {
         setSearchTags((prevTags: Set<string>) => {
             const next = new Set(prevTags);
@@ -36,41 +76,15 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
             return next;
         })
     }
-    function toggleSlice(language: LanguageSlice | string) {
-        setSelectedLanguages((previous: Set<LanguageSlice>): Set<LanguageSlice> => {
-            const next = new Set(previous);
-            const slices: LanguageSlice[] = [...previous.values()];
-            const languages: ProgrammingLanguage[] = slices.map((slice) => (slice.language as ProgrammingLanguage))
+    const toggleSlice: (language: LanguageSlice | string) => void = useCallback((language: LanguageSlice | string): void => {
+        dispatch({ type: "toggleSlice", language: language });
+    }, []);
 
-            if (typeof language !== "string" && languages.includes(language.language as ProgrammingLanguage)) {
-                for (const slice of next)
-                    if (slice.language === language.language) {
-                        next.delete(slice);
-                        setEventPieChartToggle("");
-                    }
-            }
-            else if(typeof language !== "string" && !languages.includes(language.language as ProgrammingLanguage)) {
-                next.add(language);
-            }
-            else if(typeof language === "string" && languages.includes(language as ProgrammingLanguage)) {
-                for (const slice of next)
-                    if (slice.language === language) {
-                        next.delete(slice);
-                        setEventPieChartToggle("");
-                    }
-            }
-            else if(typeof language === "string" && !languages.includes(language as ProgrammingLanguage)) {
-                console.log("attempting to call from pie-chart and try again.")
-                setEventPieChartToggle(language)
-                console.log(eventPieChartToggle)
-                return previous;
-            }
-            return next;
-        });
-    }
+    const { selectedLanguages, eventPieChartToggle } = selection;
+
 
     function clearTags() {
-        setSelectedLanguages(new Set());
+        //setSelectedLanguages(new Set());
         setSearchTags(new Set());
     }
 
@@ -126,7 +140,7 @@ export function ProjectsProvider(props: ProjectsProviderProps) {
             removeSearchTags,
             clearTags,
             eventPieChartToggle,
-        }), [commits, readmes, filteredCommits, selectedLanguages, searchTags, eventPieChartToggle]
+        }), [commits, readmes, filteredCommits, selectedLanguages, searchTags, eventPieChartToggle, toggleSlice]
     );
 
     return (
