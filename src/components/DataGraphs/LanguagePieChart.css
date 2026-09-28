@@ -48,7 +48,8 @@
     grid-area: language-chart-pie;
     justify-content: center;
     justify-items: center;
-    width: 100%;
+    min-width: 0;
+    flex-grow: 1;
 }
 
 .pie-chart li{
@@ -113,6 +114,77 @@
     pointer-events: none;
 }
 
+.pie-chart-mini {
+    display: grid;
+    padding: 0.75rem 1.25rem;
+    grid-area: language-chart-pie;
+    justify-content: center;
+    justify-items: center;
+    min-width: 0;
+    flex-grow: 1;
+}
+
+.pie-chart-mini li{
+    display: grid;
+    position: relative;
+    place-items: center;
+
+    grid-row: 1;
+    grid-column: 1;
+
+    --radius: 2rem;
+
+    --bg-color: var(--data-color);
+    --offset: calc(360deg * var(--accum) / 100);
+
+    --weighing: calc(var(--data-percentage));
+    --percentage: calc(var(--weighing) * 1%);
+    --draw: calc(var(--draw-percentage) * 1%);
+
+
+    width: calc(var(--radius) * 2);
+    aspect-ratio: 1;
+    border-radius: 50%;
+
+    background: conic-gradient(
+            from calc(var(--offset)),
+            var(--bg-color) 0% var(--draw),
+            transparent var(--percentage) 100%
+    );
+
+    animation: piechart-grow 300ms ease-in-out forwards;
+    animation-delay: calc(var(--slice-index) * 60ms);
+
+}
+
+.pie-chart-mini li {
+    transition:
+            filter 150ms ease,
+            opacity 150ms ease;
+}
+
+.pie-chart-mini:not(.is-animating):has(li.is-highlighted) li:not(.is-highlighted) {
+    opacity: 0.35;
+}
+
+.pie-chart-mini:not(.is-animating) li.is-highlighted {
+    filter: brightness(1.25);
+}
+
+.pie-chart-mini::after {
+    content: '';
+    grid-row: 1;
+    grid-column: 1;
+    place-self: center;
+    width: 1.7rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+
+    background-color: #3A4535;
+
+    z-index: 2;
+    pointer-events: none;
+}
 .language-chart div{
     flex-grow: 1;
     display: flex;
@@ -146,13 +218,20 @@
     margin: 0 0.5rem;
 }
 
-.pill th {
+.small-pill {
+    font-size: smaller;
+    margin: 0 0.25rem;
+}
+
+.pill th,
+.small-pill th {
     align-content: center;
     text-align: left;
     width: 66%;
 }
 
-.pill td {
+.pill td,
+.small-pill td {
     text-align: right;
     align-items: center;
     align-content: center;
@@ -199,9 +278,6 @@
 
 .language-color {
     display: inline-block;
-    width: 0.8rem;
-    height: 0.8rem;
-    margin-right: 0.5rem;
     border-radius: 50%;
     vertical-align: middle;
 }

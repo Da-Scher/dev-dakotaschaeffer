@@ -3,7 +3,8 @@ import {useProjectsContext} from "../../context/useProjectsContext";
 import {generateColorOrder, makeSlices} from "./LanguagePieChartHelper";
 import type {NormalizedLanguageStats} from "../../types/programlanguages";
 import type {LanguageSlice} from "./LanguagePieChart";
-import "./LanguagePieChart.css";
+//import "./LanguagePieChart.css";
+import {shortenName} from "../../types/programlanguages";
 
 interface ProjectLanguagePieChartProps {
     languageStats: NormalizedLanguageStats | undefined;
@@ -17,17 +18,18 @@ function ProjectLanguagePieChart(props: ProjectLanguagePieChartProps): React.JSX
     }
     const colorOrder: string[] = generateColorOrder(languageStats);
 
-    const slices: LanguageSlice[] = makeSlices(languageStats, colorOrder, selectedLanguages);
+    const slices: LanguageSlice[] | undefined = makeSlices(languageStats, colorOrder, selectedLanguages);
+
+    if (!slices) {
+        return <p>No Language Statistics...</p>;
+    }
 
     return (
         <figure
-
+            className={""}
         >
-            <figcaption>
-                Language Use Statistics
-            </figcaption>
             <ul
-                className={`pie-chart`}
+                className={"pie-chart-mini"}
             >
                 {
                     slices.map((slice: LanguageSlice, index: number): React.JSX.Element => (
@@ -43,39 +45,63 @@ function ProjectLanguagePieChart(props: ProjectLanguagePieChartProps): React.JSX
                     ))
                 }
             </ul>
-            <table>
-                <thead>
+            <table className={"w-full"}>
+                <thead
+                    className={"language-table-head top-0 sticky"}>
                 <tr>
-                    <th>Name</th>
-                    <th>Changes</th>
-                    <th>Usage</th>
+                    <th className={"pl-16"}>Language</th>
+                    <td className={"text-right"}>%</td>
                 </tr>
                 </thead>
-                <tbody>
-                {
-                    slices.map((slice) => {
-                        return (
-                            <tr key={slice.language}>
-                                <th scope={"row"}>
-                                    <span
-                                        style={{backgroundColor: slice.color}}
-                                        aria-hidden={true}
-                                    />
-                                    {slice.language}
-                                </th>
-                                <td>
-                                    {slice.stat.changes.toLocaleString()}
-                                </td>
-                                <td>
-                                    {slice.percentage.toFixed(2)}
-                                </td>
-                            </tr>
-                        );
-                    })
-                }
-                </tbody>
             </table>
+            <div className="table-scroll">
+                <table>
+                    <tbody
+                        className={"flex flex-col gap-1"}
+                    >
+                    {
+                        slices.map((slice) => {
+                            return (
+                                <tr
+                                    key={slice.language}
+                                    className={"flex flex-row pb-0.5 bg-(--accent-color) sticky rounded-2xl"}
+                                >
+                                    <th
+                                        scope={"row"}
+                                        className={"inline-flex items-center justify-center pl-1"}
+                                    >
+                                        <span
+                                            className={"language-color"}
+                                            style={{backgroundColor: slice.color}}
+                                            aria-hidden={true}
+                                        />
+                                        <p
+                                            className={"ml-1"}
+                                        >
+                                            {slice.language.length > 5
+                                                ? shortenName.get(slice.language)
+                                                    ? shortenName.get(slice.language)
+                                                    : "?????"
+                                                : slice.language}
+                                        </p>
+                                    </th>
+                                    <td
+                                        className={"min-w-0 grow"}
+                                    >
+                                        <p
+                                            className={"text-right mr-1"}
+                                        >
+                                            {slice.percentage.toFixed(2)}
+                                        </p>
 
+                                    </td>
+                                </tr>
+                            );
+                        })
+                    }
+                    </tbody>
+                </table>
+            </div>
         </figure>
     );
 }
