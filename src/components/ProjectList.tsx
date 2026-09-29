@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useLayoutEffect} from "react";
 import {useProjectsContext} from "../context/useProjectsContext";
 import type {NormalizedLanguageStats} from "../types/programlanguages";
 import type {CommitActivity, ReadmeData} from "../types/commit";
@@ -17,9 +17,36 @@ function ProjectList (): React.JSX.Element {
     // Get necessary context for Projects
     const {filteredCommits, readmes} = useProjectsContext();
     const [projectIndex, setProjectIndex] = React.useState<number>(0);
+    const [largeScreen, setLargeScreen] = React.useState<boolean>(window.screen.width >= 1024);
     const commitActivityForEachRepo = new Map<string, CommitActivity[]>();
     const languageStatsForEachRepo = new Map<string, NormalizedLanguageStats | undefined>();
     const latestCommitForEachRepo = new Map<string, CommitActivity>();
+    console.log(`project index (${projectIndex}) % 6 = ${projectIndex % 6}`)
+
+    useLayoutEffect((): () => void => {
+        const checkResolution: () => void = (): void => {
+            setLargeScreen(window.screen.width >= 1024);
+            console.log(`project index (${projectIndex}) % 6 = ${projectIndex % 6}`)
+            if (window.screen.width >= 1024 && projectIndex % 6 !== 0) {
+                switch (projectIndex % 6) {
+                    case 1: setProjectIndex(projectIndex - 5); break;
+                    case 2: setProjectIndex(projectIndex - 4); break;
+                    case 3: setProjectIndex(projectIndex - 3); break;
+                    case 4: setProjectIndex(projectIndex - 2); break;
+                    case 5: setProjectIndex(projectIndex - 1); break;
+                }
+
+            }
+            else if (window.screen.width < 1024 && projectIndex % 3 !== 0) {
+                switch (projectIndex % 3) {
+                    case 1: setProjectIndex(projectIndex - 2); break;
+                    case 2: setProjectIndex(projectIndex - 1); break;
+                }
+            }
+        };
+        window.addEventListener("resize", checkResolution);
+        return () => window.removeEventListener("resize", checkResolution);
+    }, [projectIndex]);
 
     if (!filteredCommits) {
         return <p>Loading commits...</p>;
@@ -75,21 +102,72 @@ function ProjectList (): React.JSX.Element {
     })();
 
     const decreaseProjectIndex: () => void = (): void => {
-        if (projectIndex < 3) return;
+        console.log(`decreaseProjectIndex() :: project index start (${projectIndex})`);
+        if (largeScreen) {
+            if (projectIndex < 6) {
+                setProjectIndex(0);
+                return;
+            }
+            switch (projectIndex % 6) {
+                case 0: setProjectIndex(projectIndex - 6); console.log(`decreaseProjectIndex() :: largeScreen - 6`); break;
+                case 1: setProjectIndex(projectIndex - 5); console.log(`decreaseProjectIndex() :: largeScreen - 5`); break;
+                case 2: setProjectIndex(projectIndex - 4); console.log(`decreaseProjectIndex() :: largeScreen - 4`); break;
+                case 3: setProjectIndex(projectIndex - 3); console.log(`decreaseProjectIndex() :: largeScreen - 3`); break;
+                case 4: setProjectIndex(projectIndex - 2); console.log(`decreaseProjectIndex() :: largeScreen - 2`); break;
+                case 5: setProjectIndex(projectIndex - 1); console.log(`decreaseProjectIndex() :: largeScreen - 1`); break;
+            }
+            console.log(`decreaseProjectIndex() :: project index new value = ${projectIndex}`);
+            return;
+        }
+        if (projectIndex < 3) {
+            setProjectIndex(0);
+            return;
+        }
         switch (projectIndex % 3) {
-            case 0: setProjectIndex(projectIndex - 3); break;
-            case 1: setProjectIndex(projectIndex - 2); break;
-            case 2: setProjectIndex(projectIndex - 1); break;
+            case 0: setProjectIndex(projectIndex - 3); console.log(`decreaseProjectIndex() :: !large screen - 3`); break;
+            case 1: setProjectIndex(projectIndex - 2); console.log(`decreaseProjectIndex() :: !large screen - 2`); break;
+            case 2: setProjectIndex(projectIndex - 1); console.log(`decreaseProjectIndex() :: !large screen - 1`); break;
         }
     }
     const increaseProjectIndex: () => void = (): void => {
-        if (projectIndex > projectsList.length - 3) return;
-        switch (projectIndex % 3) {
-            case 0: setProjectIndex(projectIndex + 3); break;
-            case 1: setProjectIndex(projectIndex + 2); break;
-            case 2: setProjectIndex(projectIndex + 1); break;
+        console.log(`increaseProjectIndex() :: project index start (${projectIndex})`);
+        if (largeScreen) {
+            if (projectIndex + 6 >= projectsList.length - 6) {
+                //setProjectIndex(projectsList.length - 6);
+                switch (projectIndex + 6 % 6) {
+                    case 0: setProjectIndex(projectIndex + 6); console.log(`increaseProjectIndex() :: largeScreen + 6`); break;
+                    case 1: setProjectIndex(projectIndex + 6 - 5); console.log(`increaseProjectIndex() :: largeScreen + 5`); break;
+                    case 2: setProjectIndex(projectIndex + 6 - 4); console.log(`increaseProjectIndex() :: largeScreen + 4`); break;
+                    case 3: setProjectIndex(projectIndex + 6 - 3); console.log(`increaseProjectIndex() :: largeScreen + 3`); break;
+                    case 4: setProjectIndex(projectIndex + 6 - 2); console.log(`increaseProjectIndex() :: largeScreen + 2`); break;
+                    case 5: setProjectIndex(projectIndex + 6 - 1); console.log(`increaseProjectIndex() :: largeScreen + 1`); break;
+                }
+                return;
+            }
+            switch (projectIndex % 6) {
+                case 0: setProjectIndex(projectIndex + 6); console.log(`increaseProjectIndex() :: largeScreen + 6`); break;
+                case 1: setProjectIndex(projectIndex + 5); console.log(`increaseProjectIndex() :: largeScreen + 5`); break;
+                case 2: setProjectIndex(projectIndex + 4); console.log(`increaseProjectIndex() :: largeScreen + 4`); break;
+                case 3: setProjectIndex(projectIndex + 3); console.log(`increaseProjectIndex() :: largeScreen + 3`); break;
+                case 4: setProjectIndex(projectIndex + 2); console.log(`increaseProjectIndex() :: largeScreen + 2`); break;
+                case 5: setProjectIndex(projectIndex + 1); console.log(`increaseProjectIndex() :: largeScreen + 1`); break;
+            }
+            console.log(`increaseProjectIndex() :: project index new value = ${projectIndex}`);
+            return;
         }
+        if (projectIndex + 3 > projectsList.length - 3) {
+            setProjectIndex(projectsList.length - 3);
+            return;
+        }
+        switch (projectIndex % 3) {
+            case 0: setProjectIndex(projectIndex + 3); console.log(`increaseProjectIndex() :: !largeScreen + 3`); break;
+            case 1: setProjectIndex(projectIndex + 2); console.log(`increaseProjectIndex() :: !largeScreen + 2`); break;
+            case 2: setProjectIndex(projectIndex + 1); console.log(`increaseProjectIndex() :: !largeScreen + 1`); break;
+        }
+        console.log(`increaseProjectIndex() :: project index new value = ${projectIndex}`);
     }
+
+
     // order of appearance:
     // start with 3 latest projects.
     // then 3 latest projects with some qualifier: programs with language, name, etc.
@@ -98,14 +176,16 @@ function ProjectList (): React.JSX.Element {
         new Date(b.latestCommit).getTime() - new Date(a.latestCommit).getTime()
     );
 
-    const renderList: ProjectItem[] = [projectsList[projectIndex], projectsList[projectIndex + 1], projectsList[projectIndex + 2]];
+    const renderList: ProjectItem[] = (() => {
+        return largeScreen ? projectsList.slice(projectIndex, projectIndex + 6) : [projectsList[projectIndex], projectsList[projectIndex + 1], projectsList[projectIndex + 2]];
+    })();
     console.log(`render list`);
     console.log(renderList);
     // each project should have a description, then a name, then a date, and the first 5 lines from the README.md.
     return (
         <div
             className={[
-                "flex flex-col gap-4",
+                `${largeScreen ? "grid grid-cols-2 grid-rows-[1fr_1fr_1fr_auto] gap-2" : "flex flex-col gap-4" }`,
                 "bg-(--main-color) mx-4 p-4",
             ].join(' ')}
         >
@@ -119,7 +199,10 @@ function ProjectList (): React.JSX.Element {
                 })
             }
             <div
-                className={"flex gap-4 w-full grow min-w-0 justify-center"}
+                className={[
+                    largeScreen ? "col-start-1 col-end-3 row-start-4 row-end-5" : "",
+                    "flex gap-4 w-full grow min-w-0 justify-center"
+                ].join(' ')}
             >
                 <span
                     className={[

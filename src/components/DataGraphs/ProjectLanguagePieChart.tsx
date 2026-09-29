@@ -26,7 +26,7 @@ function ProjectLanguagePieChart(props: ProjectLanguagePieChartProps): React.JSX
 
     return (
         <figure
-            className={""}
+            className={"min-h-0 grow flex flex-col"}
         >
             <ul
                 className={"pie-chart-mini"}
@@ -54,8 +54,8 @@ function ProjectLanguagePieChart(props: ProjectLanguagePieChartProps): React.JSX
                 </tr>
                 </thead>
             </table>
-            <div className="table-scroll">
-                <table>
+            <div className="grow min-h-0 overflow-auto overscroll-contain scrollbar-gutter-stable">
+                <table className={""}>
                     <tbody
                         className={"flex flex-col gap-1"}
                     >

@@ -45,7 +45,7 @@ function Project ({project, Name, When, Readme}: ProjectProps): React.JSX.Elemen
         <div
             className={[
                 "h-64 w-full md:h-80 md:w-full",
-                "grid grid-cols-[1fr_0.25fr] grid-rows-[auto_1fr]",
+                "grid grid-cols-[1fr_auto] grid-rows-[auto_1fr]",
                 "bg-(--project-background-color) text-black",
                 ""
             ].join(' ')}>
@@ -62,7 +62,7 @@ function Project ({project, Name, When, Readme}: ProjectProps): React.JSX.Elemen
                 <p className={""}>Last Commit: {new Date(When).getDate()} {new Date(When).getMonth() + 1} {new Date(When).getFullYear()}</p>
                 <p className={""}>{readme}</p>
             </div>
-            <div className={"col-start-2 row-start-2 col-end-3 row-end-3"}>
+            <div className={"min-h-0 mb-2 w-full grow flex col-start-2 row-start-2 col-end-3 row-end-3 overflow-auto"}>
                 <ProjectLanguagePieChart languageStats={project}/>
             </div>
 
